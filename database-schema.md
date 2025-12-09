@@ -25,6 +25,15 @@ erDiagram
     LOCATION ||--o{ SHIPMENT : "origen"
     LOCATION ||--o{ SHIPMENT : "destino"
     LOCATION ||--o{ SHIPMENT_CHECKPOINT : "registra eventos"
+    LOCATION ||--o{ ROUTE_STEP : "parada en ruta"
+    LOCATION ||--o{ NETWORK_LINK : "origen de enlace"
+    LOCATION ||--o{ NETWORK_LINK : "destino de enlace"
+
+    %% ========== ENRUTAMIENTO (HUB & SPOKE) ==========
+    TENANT ||--o{ ROUTE_BLUEPRINT : "define rutas"
+    TENANT ||--o{ NETWORK_LINK : "define enlaces de red"
+    ROUTE_BLUEPRINT ||--o{ ROUTE_STEP : "tiene paradas"
+    ROUTE_BLUEPRINT ||--o{ SHIPMENT : "asignada a envíos"
 
     %% ========== OPERACIONES ==========
     TRUCK ||--o{ SHIPMENT : "transporta"
@@ -98,11 +107,12 @@ erDiagram
     LOCATION {
         uuid id PK
         uuid tenant_id FK
+        string code UK "Ej: MTY, GDL, MM - Código corto único"
         string name "Ej: CEDIS Norte"
-        string type "Hub|Warehouse|CrossDock|Customer"
+        string type "RegionalHub|CrossDock|Warehouse|Store|SupplierPlant"
         string full_address
-        double latitude
-        double longitude
+        boolean can_receive "Puede recibir mercancía"
+        boolean can_dispatch "Puede despachar mercancía"
         boolean is_internal "Propio o externo"
         boolean is_active
         datetime created_at
@@ -115,6 +125,8 @@ erDiagram
         string qr_code_data "String único para generar QR"
         uuid origin_location_id FK
         uuid destination_location_id FK
+        uuid assigned_route_id FK "nullable - Ruta predefinida asignada"
+        int current_step_order "nullable - Paso actual en la ruta"
         string recipient_name
         string recipient_phone
         decimal total_weight_kg
@@ -128,9 +140,10 @@ erDiagram
         uuid truck_id FK "nullable"
         uuid driver_id FK "nullable"
         boolean was_qr_scanned "True si se usó cámara"
+        datetime scheduled_departure "nullable - Fecha/hora salida planeada"
         datetime pickup_window_start "nullable - Ventana de recolección"
         datetime pickup_window_end "nullable"
-        datetime estimated_delivery
+        datetime estimated_arrival "Calculada: Salida + Suma tiempos ruta"
         datetime assigned_at "nullable"
         datetime delivered_at "nullable"
         datetime created_at
@@ -184,6 +197,40 @@ erDiagram
         string generated_by "System|User"
         datetime generated_at
         datetime expires_at "nullable - para documentos temporales"
+    }
+
+    %% ========== ENRUTAMIENTO (HUB & SPOKE) ==========
+    ROUTE_BLUEPRINT {
+        uuid id PK
+        uuid tenant_id FK
+        string name "Ej: Ruta Mty-Saltillo-Torreón"
+        string description "nullable"
+        int total_steps "Número de paradas"
+        time total_transit_time "Suma de tiempos de tránsito"
+        boolean is_active
+        datetime created_at
+    }
+
+    ROUTE_STEP {
+        uuid id PK
+        uuid route_blueprint_id FK
+        uuid location_id FK "La sede (Hub, Almacén, etc.)"
+        int step_order "1, 2, 3... Orden de la parada"
+        time standard_transit_time "Tiempo desde parada anterior"
+        string step_type "Origin|Intermediate|Destination"
+        datetime created_at
+    }
+
+    NETWORK_LINK {
+        uuid id PK
+        uuid tenant_id FK
+        uuid origin_location_id FK
+        uuid destination_location_id FK
+        string link_type "FirstMile|LineHaul|LastMile"
+        time transit_time "Tiempo estándar del tramo"
+        boolean is_bidirectional "Si aplica en ambas direcciones"
+        boolean is_active
+        datetime created_at
     }
 ```
 
@@ -240,24 +287,111 @@ Este módulo permite gestionar **nodos de la red logística**: almacenes propios
 | ---------- | ----------------------------------------------------------------------- |
 | `LOCATION` | Sedes y nodos de la red. Almacenes, Hubs, Cross-docks, puntos de venta. |
 
-**Tipos de Ubicación:**
+| Tipo           | Código          | Puede Recibir | Puede Despachar | Descripción                             |
+| -------------- | --------------- | ------------- | --------------- | --------------------------------------- |
+| Hub Regional   | `RegionalHub`   | Sí            | Sí              | Nodo central, recibe y despacha masivo  |
+| Cross-dock     | `CrossDock`     | Sí            | Sí              | Transferencia rápida sin almacenamiento |
+| Almacén        | `Warehouse`     | Sí            | Sí              | Bodega de almacenamiento prolongado     |
+| Tienda/Cliente | `Store`         | Sí            | No              | Punto de venta final, solo recibe       |
+| Proveedor      | `SupplierPlant` | No            | Sí              | Fábrica de origen, solo despacha        |
 
-| Tipo       | Código      | Descripción                                    |
-| ---------- | ----------- | ---------------------------------------------- |
-| Almacén    | `Warehouse` | Bodega de almacenamiento prolongado            |
-| Hub/CEDIS  | `Hub`       | Centro de distribución, punto de consolidación |
-| Cross-dock | `CrossDock` | Transferencia rápida sin almacenamiento        |
-| Cliente    | `Customer`  | Ubicación final del destinatario               |
+### 2.4 Módulo de Enrutamiento (Hub & Spoke)
 
-### 2.4 Módulo de Envíos (Shipments)
+Sistema de rutas predefinidas basado en topología Hub & Spoke. La distancia se mide en **tiempo de tránsito**, no en kilómetros.
 
-| Tabla      | Propósito                                                       |
-| ---------- | --------------------------------------------------------------- |
-| `SHIPMENT` | Envío principal con origen, destino, peso total y trazabilidad. |
+| Tabla             | Propósito                                                        |
+| ----------------- | ---------------------------------------------------------------- |
+| `ROUTE_BLUEPRINT` | Define una ruta predefinida con nombre y paradas ordenadas.      |
+| `ROUTE_STEP`      | Cada parada de la ruta con tiempo de tránsito desde la anterior. |
+| `NETWORK_LINK`    | Define conexiones permitidas entre nodos (Lista de Adyacencia).  |
+
+**Tipos de Enlace (NetworkLink):**
+
+| Tipo          | Código      | Descripción                            |
+| ------------- | ----------- | -------------------------------------- |
+| Primera Milla | `FirstMile` | Recolección: Cliente/Proveedor → Hub   |
+| Línea Troncal | `LineHaul`  | Carretera: Hub → Hub (larga distancia) |
+| Última Milla  | `LastMile`  | Entrega: Hub → Cliente/Tienda          |
+
+**Regla de Conexión:**
+
+- Un nodo tipo `SupplierPlant` o `Store` SOLO puede conectarse a un `RegionalHub` o `CrossDock`
+- Las conexiones directas Cliente → Cliente están bloqueadas por diseño
+
+**Topología Hub & Spoke (Malla Estelar):**
+
+```mermaid
+graph TD
+    subgraph "Proveedores (Solo Despachan)"
+        EMPA[EMP-A: Empresa A]
+        EMPB[EMP-B: Empresa B]
+        EMPC[EMP-C: Empresa C]
+    end
+
+    subgraph "Red de Hubs"
+        MM((MM: CEDIS DFG))
+        CC((CC: CEDIS Norte))
+        UIO((UIO: Hub Central))
+    end
+
+    subgraph "Clientes (Solo Reciben)"
+        EMPG[EMP-G: Empresa G]
+        EMPH[EMP-H: Destino H]
+        EMPU[EMP-U: Destino U]
+    end
+
+    %% Primera Milla (FirstMile)
+    EMPA -->|FirstMile| UIO
+    EMPB -->|FirstMile| MM
+    EMPC -->|FirstMile| CC
+
+    %% Línea Troncal (LineHaul)
+    MM ==>|LineHaul| CC
+    MM ==>|LineHaul| UIO
+    CC ==>|LineHaul| UIO
+
+    %% Última Milla (LastMile)
+    CC -->|LastMile| EMPG
+    MM -->|LastMile| EMPH
+    UIO -->|LastMile| EMPU
+
+    %% Ruta Ejemplo: EMP-B -> MM -> CC -> EMP-G
+    EMPB -.->|Ruta Inválida| EMPG
+```
+
+**Ejemplo de Ruta Calculada:**
+
+| Paso      | Origen | Destino | Tipo      | Tiempo  |
+| --------- | ------ | ------- | --------- | ------- |
+| 1         | EMP-B  | MM      | FirstMile | 4h      |
+| 2         | MM     | CC      | LineHaul  | 6h      |
+| 3         | CC     | EMP-G   | LastMile  | 2h      |
+| **Total** |        |         |           | **12h** |
+
+**Campos de Enrutamiento en Shipment:**
+
+| Campo                 | Propósito                                      |
+| --------------------- | ---------------------------------------------- |
+| `assigned_route_id`   | Ruta predefinida asignada al envío             |
+| `current_step_order`  | Paso actual del envío en la ruta               |
+| `scheduled_departure` | Fecha/hora de salida planeada                  |
+| `estimated_arrival`   | Calculada: Salida + Suma de tiempos de la ruta |
+
+**Lógica de Cálculo de ETA:**
+
+```
+ETA = scheduled_departure + SUM(route_steps.standard_transit_time)
+```
+
+### 2.5 Módulo de Envíos (Shipments)
+
+| Tabla      | Propósito                                                          |
+| ---------- | ------------------------------------------------------------------ |
+| `SHIPMENT` | Envío principal con origen, destino, ruta asignada y trazabilidad. |
 
 **Número de Tracking:** Cada envío genera un código único con formato `PAR-XXXXXX` para seguimiento público.
 
-### 2.5 Módulo de Manifiesto (Shipment Items)
+### 2.6 Módulo de Manifiesto (Shipment Items)
 
 Detalla el contenido de cada envío. Permite calcular **peso volumétrico** para cotizaciones precisas.
 
@@ -280,7 +414,7 @@ Peso Facturable = MAX(Peso Real, Peso Volumétrico)
 | `is_hazardous`           | Material peligroso (HAZMAT)                 |
 | `requires_refrigeration` | Cadena de frío (perecederos, farmacéuticos) |
 
-### 2.6 Módulo de Trazabilidad (Checkpoints)
+### 2.7 Módulo de Trazabilidad (Checkpoints)
 
 Bitácora de eventos del envío. Cada escaneo, movimiento o excepción genera un registro.
 
@@ -303,7 +437,7 @@ Bitácora de eventos del envío. Cada escaneo, movimiento o excepción genera un
 
 ---
 
-### 2.7 Módulo QR Handshake (Cadena de Custodia Digital)
+### 2.8 Módulo QR Handshake (Cadena de Custodia Digital)
 
 Permite la transferencia de custodia de paquetes mediante escaneo de código QR, eliminando errores de captura manual.
 
@@ -329,7 +463,7 @@ Permite la transferencia de custodia de paquetes mediante escaneo de código QR,
 
 ---
 
-### 2.8 Módulo de Documentación B2B (Legal)
+### 2.9 Módulo de Documentación B2B (Legal)
 
 Gestión de documentos legales requeridos para operaciones B2B formales.
 
@@ -429,10 +563,16 @@ CREATE INDEX idx_location_tenant_type ON locations(tenant_id, type);
 CREATE INDEX idx_shipment_origin ON shipments(origin_location_id);
 CREATE INDEX idx_shipment_destination ON shipments(destination_location_id);
 
+-- Enrutamiento (Hub & Spoke)
+CREATE INDEX idx_network_link_origin ON network_links(origin_location_id);
+CREATE INDEX idx_network_link_destination ON network_links(destination_location_id);
+CREATE INDEX idx_route_step_blueprint ON route_steps(route_blueprint_id, step_order);
+
 -- Unicidad
 CREATE UNIQUE INDEX idx_truck_plate_per_tenant ON trucks(tenant_id, plate);
 CREATE UNIQUE INDEX idx_user_email ON users(email);
 CREATE UNIQUE INDEX idx_shipment_tracking_unique ON shipments(tracking_number);
+CREATE UNIQUE INDEX idx_location_code_per_tenant ON locations(tenant_id, code);
 ```
 
 ---
@@ -499,11 +639,12 @@ public class Location
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
+    public string Code { get; set; } = null!;  // Código corto único (MTY, GDL, MM)
     public string Name { get; set; } = null!;
     public LocationType Type { get; set; }
     public string FullAddress { get; set; } = null!;
-    public double Latitude { get; set; }
-    public double Longitude { get; set; }
+    public bool CanReceive { get; set; }
+    public bool CanDispatch { get; set; }
     public bool IsInternal { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -513,9 +654,12 @@ public class Location
     public ICollection<Shipment> OriginShipments { get; set; } = new List<Shipment>();
     public ICollection<Shipment> DestinationShipments { get; set; } = new List<Shipment>();
     public ICollection<ShipmentCheckpoint> Checkpoints { get; set; } = new List<ShipmentCheckpoint>();
+    public ICollection<RouteStep> RouteSteps { get; set; } = new List<RouteStep>();
+    public ICollection<NetworkLink> OutgoingLinks { get; set; } = new List<NetworkLink>();
+    public ICollection<NetworkLink> IncomingLinks { get; set; } = new List<NetworkLink>();
 }
 
-public enum LocationType { Warehouse, Hub, CrossDock, Customer }
+public enum LocationType { RegionalHub, CrossDock, Warehouse, Store, SupplierPlant }
 ```
 
 ### Entidad Truck
@@ -553,6 +697,11 @@ public class Shipment
     public string QrCodeData { get; set; } = null!;
     public Guid OriginLocationId { get; set; }
     public Guid DestinationLocationId { get; set; }
+
+    // Enrutamiento Hub & Spoke
+    public Guid? AssignedRouteId { get; set; }
+    public int? CurrentStepOrder { get; set; }
+
     public string RecipientName { get; set; } = null!;
     public string? RecipientPhone { get; set; }
     public decimal TotalWeightKg { get; set; }
@@ -570,10 +719,11 @@ public class Shipment
     public Guid? DriverId { get; set; }
     public bool WasQrScanned { get; set; }
 
-    // Ventanas de Cita
+    // Fechas y Ventanas
+    public DateTime? ScheduledDeparture { get; set; }
     public DateTime? PickupWindowStart { get; set; }
     public DateTime? PickupWindowEnd { get; set; }
-    public DateTime? EstimatedDelivery { get; set; }
+    public DateTime? EstimatedArrival { get; set; }
     public DateTime? AssignedAt { get; set; }
     public DateTime? DeliveredAt { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -582,6 +732,7 @@ public class Shipment
     public Tenant Tenant { get; set; } = null!;
     public Location OriginLocation { get; set; } = null!;
     public Location DestinationLocation { get; set; } = null!;
+    public RouteBlueprint? AssignedRoute { get; set; }
     public Truck? Truck { get; set; }
     public Driver? Driver { get; set; }
     public ICollection<ShipmentItem> Items { get; set; } = new List<ShipmentItem>();
@@ -662,6 +813,72 @@ public class ShipmentDocument
 public enum DocumentType { ServiceOrder, Waybill, Manifest, TripSheet, POD }
 ```
 
+### Entidad RouteBlueprint
+
+```csharp
+public class RouteBlueprint
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public string Name { get; set; } = null!;
+    public string? Description { get; set; }
+    public int TotalSteps { get; set; }
+    public TimeSpan TotalTransitTime { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public ICollection<RouteStep> Steps { get; set; } = new List<RouteStep>();
+    public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
+}
+```
+
+### Entidad RouteStep
+
+```csharp
+public class RouteStep
+{
+    public Guid Id { get; set; }
+    public Guid RouteBlueprintId { get; set; }
+    public Guid LocationId { get; set; }
+    public int StepOrder { get; set; }
+    public TimeSpan StandardTransitTime { get; set; }
+    public RouteStepType StepType { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    // Navigation Properties
+    public RouteBlueprint RouteBlueprint { get; set; } = null!;
+    public Location Location { get; set; } = null!;
+}
+
+public enum RouteStepType { Origin, Intermediate, Destination }
+```
+
+### Entidad NetworkLink
+
+```csharp
+public class NetworkLink
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid OriginLocationId { get; set; }
+    public Guid DestinationLocationId { get; set; }
+    public NetworkLinkType LinkType { get; set; }
+    public TimeSpan TransitTime { get; set; }
+    public bool IsBidirectional { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public Location OriginLocation { get; set; } = null!;
+    public Location DestinationLocation { get; set; } = null!;
+}
+
+public enum NetworkLinkType { FirstMile, LineHaul, LastMile }
+```
+
 ### Entidad Tenant (Actualizada)
 
 ```csharp
@@ -693,8 +910,14 @@ public class Tenant
 public enum ShipmentStatus { PendingApproval, Approved, Loaded, InTransit, AtHub, OutForDelivery, Delivered, Exception }
 public enum ShipmentPriority { Normal, Urgent, Express }
 public enum DriverStatus { Available, OnRoute, Inactive }
-public enum LocationType { Warehouse, Hub, CrossDock, Customer }
+
+// Tipos de Entidad
+public enum LocationType { RegionalHub, CrossDock, Warehouse, Store, SupplierPlant }
 public enum TruckType { DryBox, Refrigerated, HazmatTank, Flatbed, Armored }
+public enum RouteStepType { Origin, Intermediate, Destination }
+public enum NetworkLinkType { FirstMile, LineHaul, LastMile }
+
+// Eventos y Logs
 public enum CheckpointStatus { Loaded, QrScanned, ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
 public enum FleetLogReason { ShiftChange, Breakdown, Reassignment }
 public enum DocumentType { ServiceOrder, Waybill, Manifest, TripSheet, POD }
