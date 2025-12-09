@@ -1,8 +1,9 @@
 # PARHELION-WMS | Modelo de Base de Datos
 
-**Versión:** 2.1 (Enterprise + Operations)
+**Versión:** 2.2 (Final - Scope Freeze)
 **Fecha:** Diciembre 2025
 **Motor:** PostgreSQL + Entity Framework Core (Code First)
+**Estado:** Diseño Cerrado - Listo para Implementación
 
 ---
 
@@ -109,6 +110,7 @@ erDiagram
         uuid id PK
         uuid tenant_id FK
         string tracking_number UK "PAR-XXXXXX"
+        string qr_code_data "String único para generar QR"
         uuid origin_location_id FK
         uuid destination_location_id FK
         string recipient_name
@@ -120,6 +122,7 @@ erDiagram
         string status "Pending|Loaded|InTransit|AtHub|OutForDelivery|Delivered|Exception"
         uuid truck_id FK "nullable"
         uuid driver_id FK "nullable"
+        boolean was_qr_scanned "True si se usó cámara"
         datetime estimated_delivery
         datetime assigned_at "nullable"
         datetime delivered_at "nullable"
@@ -258,15 +261,42 @@ Bitácora de eventos del envío. Cada escaneo, movimiento o excepción genera un
 
 **Códigos de Checkpoint:**
 
-| Código            | Descripción                                   |
-| ----------------- | --------------------------------------------- |
-| `Loaded`          | Paquete cargado en camión por almacenista     |
-| `ArrivedHub`      | Llegó a un Hub/CEDIS                          |
-| `DepartedHub`     | Salió del Hub hacia siguiente destino         |
-| `OutForDelivery`  | En camino al destinatario final               |
-| `DeliveryAttempt` | Intento de entrega (puede incluir motivo)     |
-| `Delivered`       | Entregado exitosamente                        |
-| `Exception`       | Problema: dirección incorrecta, rechazo, etc. |
+| Código            | Descripción                                    |
+| ----------------- | ---------------------------------------------- |
+| `Loaded`          | Paquete cargado en camión (manual)             |
+| `QrScanned`       | Paquete escaneado por chofer (cadena custodia) |
+| `ArrivedHub`      | Llegó a un Hub/CEDIS                           |
+| `DepartedHub`     | Salió del Hub hacia siguiente destino          |
+| `OutForDelivery`  | En camino al destinatario final                |
+| `DeliveryAttempt` | Intento de entrega (puede incluir motivo)      |
+| `Delivered`       | Entregado exitosamente                         |
+| `Exception`       | Problema: dirección incorrecta, rechazo, etc.  |
+
+---
+
+### 2.7 Módulo QR Handshake (Cadena de Custodia Digital)
+
+Permite la transferencia de custodia de paquetes mediante escaneo de código QR, eliminando errores de captura manual.
+
+| Campo            | Propósito                                                    |
+| ---------------- | ------------------------------------------------------------ |
+| `qr_code_data`   | String único embebido en el QR (puede ser el UUID del envío) |
+| `was_qr_scanned` | Indica si la carga se realizó por escaneo o manualmente      |
+
+**Flujo de Operación:**
+
+1. El Admin/Almacenista genera el envío en Angular
+2. El sistema muestra un código QR en pantalla
+3. El Chofer escanea el QR con la app React
+4. El backend registra la transferencia de custodia y actualiza el estatus
+
+**Librerías Recomendadas:**
+
+| Plataforma   | Librería               | Uso                    |
+| ------------ | ---------------------- | ---------------------- |
+| Angular      | `angularx-qrcode`      | Generación de QR       |
+| React Web    | `react-qr-reader`      | Lectura de QR (PWA)    |
+| React Native | `expo-barcode-scanner` | Lectura de QR (Native) |
 
 ---
 
@@ -419,6 +449,7 @@ public class Shipment
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
     public string TrackingNumber { get; set; } = null!;
+    public string QrCodeData { get; set; } = null!;  // String único para QR
     public Guid OriginLocationId { get; set; }
     public Guid DestinationLocationId { get; set; }
     public string RecipientName { get; set; } = null!;
@@ -430,6 +461,7 @@ public class Shipment
     public ShipmentStatus Status { get; set; }
     public Guid? TruckId { get; set; }
     public Guid? DriverId { get; set; }
+    public bool WasQrScanned { get; set; }  // True si se usó cámara
     public DateTime? EstimatedDelivery { get; set; }
     public DateTime? AssignedAt { get; set; }
     public DateTime? DeliveredAt { get; set; }
@@ -528,7 +560,7 @@ public enum ShipmentStatus { Pending, Loaded, InTransit, AtHub, OutForDelivery, 
 public enum ShipmentPriority { Normal, Urgent, Express }
 public enum DriverStatus { Available, OnRoute, Inactive }
 public enum LocationType { Warehouse, Hub, CrossDock, Customer }
-public enum CheckpointStatus { Loaded, ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
+public enum CheckpointStatus { Loaded, QrScanned, ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
 public enum FleetLogReason { ShiftChange, Breakdown, Reassignment }
 ```
 
@@ -632,6 +664,37 @@ sequenceDiagram
     API->>DB: UPDATE Shipments SET truck_id, driver_id, status = 'Loaded'
     API->>DB: INSERT ShipmentCheckpoints (Loaded)
     API-->>Almacenista: 200 OK { loaded: 5, rejected: 0 }
+```
+
+### Escenario D: Chofer escanea QR para tomar custodia
+
+**Actor:** Chofer (App React en Celular)
+
+**Flujo:**
+
+1. El Almacenista muestra el QR del paquete en pantalla (Angular)
+2. El Chofer abre la cámara en la app React
+3. Escanea el código QR
+4. El backend valida el paquete y lo asigna al chofer
+5. Actualiza `was_qr_scanned = true` y estatus a `Loaded`
+6. Crea un `ShipmentCheckpoint` con código `QrScanned`
+
+```mermaid
+sequenceDiagram
+    participant Angular as Admin (Angular)
+    participant Chofer as Chofer (React)
+    participant API
+    participant DB
+
+    Angular->>Angular: Mostrar QR en pantalla
+    Chofer->>Chofer: Abrir cámara, escanear QR
+    Chofer->>API: POST /shipments/scan
+    Note right of Chofer: { qrCodeData: "uuid-del-paquete" }
+    API->>DB: SELECT * FROM shipments WHERE qr_code_data = ...
+    API->>DB: UPDATE Shipment SET driver_id, was_qr_scanned = true, status = 'Loaded'
+    API->>DB: INSERT ShipmentCheckpoint (QrScanned)
+    API-->>Chofer: 200 OK { shipment: {...} }
+    API-->>Angular: WebSocket: status changed
 ```
 
 ---
