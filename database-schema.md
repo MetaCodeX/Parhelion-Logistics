@@ -34,6 +34,7 @@ erDiagram
     %% ========== TRAZABILIDAD ==========
     SHIPMENT ||--o{ SHIPMENT_ITEM : "contiene"
     SHIPMENT ||--o{ SHIPMENT_CHECKPOINT : "tiene historial"
+    SHIPMENT ||--o{ SHIPMENT_DOCUMENT : "genera documentos"
 
     %% ========== HISTÓRICOS ==========
     DRIVER ||--o{ FLEET_LOG : "historial cambios vehículo"
@@ -86,6 +87,7 @@ erDiagram
         uuid tenant_id FK
         string plate UK
         string model
+        string type "DryBox|Refrigerated|HazmatTank|Flatbed|Armored"
         decimal max_capacity_kg
         decimal max_volume_m3
         boolean is_active
@@ -118,11 +120,16 @@ erDiagram
         decimal total_weight_kg
         decimal total_volume_m3
         decimal declared_value
+        string sat_merchandise_code "nullable - Código SAT para Carta Porte"
+        string delivery_instructions "nullable - Instrucciones para Hoja de Ruta"
+        string recipient_signature_url "nullable - URL firma digital POD"
         string priority "Normal|Urgent|Express"
-        string status "Pending|Loaded|InTransit|AtHub|OutForDelivery|Delivered|Exception"
+        string status "PendingApproval|Approved|Loaded|InTransit|AtHub|OutForDelivery|Delivered|Exception"
         uuid truck_id FK "nullable"
         uuid driver_id FK "nullable"
         boolean was_qr_scanned "True si se usó cámara"
+        datetime pickup_window_start "nullable - Ventana de recolección"
+        datetime pickup_window_end "nullable"
         datetime estimated_delivery
         datetime assigned_at "nullable"
         datetime delivered_at "nullable"
@@ -140,9 +147,11 @@ erDiagram
         decimal height_cm
         decimal length_cm
         decimal volume_m3 "Calculado"
+        decimal declared_value "Valor monetario para seguro"
         boolean is_fragile
         boolean is_hazardous
         boolean requires_refrigeration
+        string stacking_instructions "nullable - Ej: No apilar"
         datetime created_at
     }
 
@@ -165,6 +174,16 @@ erDiagram
         string reason "ShiftChange|Breakdown|Reassignment"
         datetime timestamp
         uuid created_by_user_id FK
+    }
+
+    SHIPMENT_DOCUMENT {
+        uuid id PK
+        uuid shipment_id FK
+        string document_type "ServiceOrder|Waybill|Manifest|TripSheet|POD"
+        string file_url "URL al PDF o imagen"
+        string generated_by "System|User"
+        datetime generated_at
+        datetime expires_at "nullable - para documentos temporales"
     }
 ```
 
@@ -202,6 +221,16 @@ erDiagram
 | `ShiftChange`  | Cambio de turno, entrega de unidad             |
 | `Breakdown`    | Avería mecánica, cambio por emergencia         |
 | `Reassignment` | Reasignación administrativa por disponibilidad |
+
+**Tipos de Camión (TruckType):**
+
+| Tipo        | Código         | Uso                                           |
+| ----------- | -------------- | --------------------------------------------- |
+| Caja Seca   | `DryBox`       | Carga estándar: cartón, ropa, electrónica     |
+| Refrigerado | `Refrigerated` | Cadena de frío: alimentos, farmacéuticos      |
+| Pipa HAZMAT | `HazmatTank`   | Materiales peligrosos: químicos, combustible  |
+| Plataforma  | `Flatbed`      | Carga pesada: acero, maquinaria, construcción |
+| Blindado    | `Armored`      | Alto valor: electrónicos, valores, dinero     |
 
 ### 2.3 Módulo de Red Logística (Locations)
 
@@ -300,12 +329,42 @@ Permite la transferencia de custodia de paquetes mediante escaneo de código QR,
 
 ---
 
+### 2.8 Módulo de Documentación B2B (Legal)
+
+Gestión de documentos legales requeridos para operaciones B2B formales.
+
+| Tabla               | Propósito                                                   |
+| ------------------- | ----------------------------------------------------------- |
+| `SHIPMENT_DOCUMENT` | Almacena referencias a documentos generados por el sistema. |
+
+**Tipos de Documento:**
+
+| Tipo              | Código         | Generador | Usuario Principal | Descripción                           |
+| ----------------- | -------------- | --------- | ----------------- | ------------------------------------- |
+| Orden de Servicio | `ServiceOrder` | Cliente   | Admin             | Petición inicial de traslado          |
+| Carta Porte       | `Waybill`      | Sistema   | Chofer            | Documento legal SAT para inspecciones |
+| Manifiesto        | `Manifest`     | Sistema   | Almacenista       | Checklist de carga con instrucciones  |
+| Hoja de Ruta      | `TripSheet`    | Sistema   | Chofer            | Itinerario con ventanas de entrega    |
+| Prueba de Entrega | `POD`          | Chofer    | Admin/Cliente     | Firma digital del receptor            |
+
+**Campos de Soporte en Shipment:**
+
+| Campo                     | Propósito                                  |
+| ------------------------- | ------------------------------------------ |
+| `sat_merchandise_code`    | Código SAT de mercancía para Carta Porte   |
+| `delivery_instructions`   | Instrucciones especiales para Hoja de Ruta |
+| `recipient_signature_url` | URL de la firma digital capturada en POD   |
+| `pickup_window_start/end` | Ventana horaria de recolección (cita)      |
+
+---
+
 ## 3. Flujo de Estados del Envío
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Pending : Crear Envío
-    Pending --> Loaded : Almacenista carga en camión
+    [*] --> PendingApproval : Crear Orden de Servicio
+    PendingApproval --> Approved : Admin aprueba
+    Approved --> Loaded : Almacenista carga en camión
     Loaded --> InTransit : Camión sale de sede
     InTransit --> AtHub : Llegada a Hub intermedio
     AtHub --> InTransit : Continuar ruta
@@ -317,15 +376,16 @@ stateDiagram-v2
     Delivered --> [*]
 ```
 
-| Estatus         | Código           | Descripción                                 |
-| --------------- | ---------------- | ------------------------------------------- |
-| Pendiente       | `Pending`        | Envío registrado, esperando asignación      |
-| Cargado         | `Loaded`         | Paquete cargado en camión, listo para salir |
-| En Tránsito     | `InTransit`      | En movimiento entre ubicaciones             |
-| En Hub          | `AtHub`          | Temporalmente en un centro de distribución  |
-| En Última Milla | `OutForDelivery` | En camino al destinatario final             |
-| Entregado       | `Delivered`      | Entrega confirmada                          |
-| Excepción       | `Exception`      | Problema que requiere atención              |
+| Estatus              | Código            | Descripción                                 |
+| -------------------- | ----------------- | ------------------------------------------- |
+| Pendiente Aprobación | `PendingApproval` | Orden de servicio esperando revisión        |
+| Aprobado             | `Approved`        | Envío aprobado, listo para asignar          |
+| Cargado              | `Loaded`          | Paquete cargado en camión, listo para salir |
+| En Tránsito          | `InTransit`       | En movimiento entre ubicaciones             |
+| En Hub               | `AtHub`           | Temporalmente en un centro de distribución  |
+| En Última Milla      | `OutForDelivery`  | En camino al destinatario final             |
+| Entregado            | `Delivered`       | Entrega confirmada, POD capturado           |
+| Excepción            | `Exception`       | Problema que requiere atención              |
 
 ---
 
@@ -389,6 +449,23 @@ CREATE UNIQUE INDEX idx_shipment_tracking_unique ON shipments(tracking_number);
 | **Tenant Isolation**       | Todas las queries filtran por `tenant_id`               |
 | **Checkpoint Inmutable**   | Los checkpoints no se modifican, solo se agregan nuevos |
 
+**Reglas de Compatibilidad de Carga (Hard Constraints):**
+
+| Regla                  | Condición                            | Camión Requerido | Error si no cumple                       |
+| ---------------------- | ------------------------------------ | ---------------- | ---------------------------------------- |
+| **Cadena de Frío**     | `item.requires_refrigeration = true` | `Refrigerated`   | "Este camión no soporta cadena de frío"  |
+| **Material Peligroso** | `item.is_hazardous = true`           | `HazmatTank`     | "Se requiere unidad certificada HAZMAT"  |
+| **Alto Valor**         | `SUM(declared_value) > 1,000,000`    | `Armored`        | "Se requiere unidad blindada o custodia" |
+| **Carga Pesada**       | Items sin empaque (maquinaria)       | `Flatbed`        | "Se requiere plataforma para esta carga" |
+
+**Validación de Rutas B2B:**
+
+| Regla               | Descripción                                                   |
+| ------------------- | ------------------------------------------------------------- |
+| **Origen Válido**   | `origin_location_id` debe existir en catálogo Locations       |
+| **Destino Válido**  | `destination_location_id` debe existir en Locations           |
+| **Ventana de Cita** | El envío debe tener `pickup_window` si el cliente lo requiere |
+
 ---
 
 ## 8. Usuarios Demo (Sesión Temporal)
@@ -441,6 +518,30 @@ public class Location
 public enum LocationType { Warehouse, Hub, CrossDock, Customer }
 ```
 
+### Entidad Truck
+
+```csharp
+public class Truck
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public string Plate { get; set; } = null!;
+    public string Model { get; set; } = null!;
+    public TruckType Type { get; set; }
+    public decimal MaxCapacityKg { get; set; }
+    public decimal MaxVolumeM3 { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
+    public ICollection<Driver> AssignedDrivers { get; set; } = new List<Driver>();
+}
+
+public enum TruckType { DryBox, Refrigerated, HazmatTank, Flatbed, Armored }
+```
+
 ### Entidad Shipment
 
 ```csharp
@@ -449,7 +550,7 @@ public class Shipment
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
     public string TrackingNumber { get; set; } = null!;
-    public string QrCodeData { get; set; } = null!;  // String único para QR
+    public string QrCodeData { get; set; } = null!;
     public Guid OriginLocationId { get; set; }
     public Guid DestinationLocationId { get; set; }
     public string RecipientName { get; set; } = null!;
@@ -457,11 +558,21 @@ public class Shipment
     public decimal TotalWeightKg { get; set; }
     public decimal TotalVolumeM3 { get; set; }
     public decimal? DeclaredValue { get; set; }
+
+    // Campos B2B (Documentación Legal)
+    public string? SatMerchandiseCode { get; set; }
+    public string? DeliveryInstructions { get; set; }
+    public string? RecipientSignatureUrl { get; set; }
+
     public ShipmentPriority Priority { get; set; }
     public ShipmentStatus Status { get; set; }
     public Guid? TruckId { get; set; }
     public Guid? DriverId { get; set; }
-    public bool WasQrScanned { get; set; }  // True si se usó cámara
+    public bool WasQrScanned { get; set; }
+
+    // Ventanas de Cita
+    public DateTime? PickupWindowStart { get; set; }
+    public DateTime? PickupWindowEnd { get; set; }
     public DateTime? EstimatedDelivery { get; set; }
     public DateTime? AssignedAt { get; set; }
     public DateTime? DeliveredAt { get; set; }
@@ -475,9 +586,10 @@ public class Shipment
     public Driver? Driver { get; set; }
     public ICollection<ShipmentItem> Items { get; set; } = new List<ShipmentItem>();
     public ICollection<ShipmentCheckpoint> History { get; set; } = new List<ShipmentCheckpoint>();
+    public ICollection<ShipmentDocument> Documents { get; set; } = new List<ShipmentDocument>();
 }
 
-public enum ShipmentStatus { Pending, InTransit, AtHub, OutForDelivery, Delivered, Exception }
+public enum ShipmentStatus { PendingApproval, Approved, Loaded, InTransit, AtHub, OutForDelivery, Delivered, Exception }
 public enum ShipmentPriority { Normal, Urgent, Express }
 ```
 
@@ -496,9 +608,11 @@ public class ShipmentItem
     public decimal HeightCm { get; set; }
     public decimal LengthCm { get; set; }
     public decimal VolumeM3 => (WidthCm * HeightCm * LengthCm) / 1_000_000;
+    public decimal DeclaredValue { get; set; }
     public bool IsFragile { get; set; }
     public bool IsHazardous { get; set; }
     public bool RequiresRefrigeration { get; set; }
+    public string? StackingInstructions { get; set; }
     public DateTime CreatedAt { get; set; }
 
     // Navigation Properties
@@ -525,7 +639,27 @@ public class ShipmentCheckpoint
     public User CreatedBy { get; set; } = null!;
 }
 
-public enum CheckpointStatus { ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
+public enum CheckpointStatus { Loaded, QrScanned, ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
+```
+
+### Entidad ShipmentDocument
+
+```csharp
+public class ShipmentDocument
+{
+    public Guid Id { get; set; }
+    public Guid ShipmentId { get; set; }
+    public DocumentType DocumentType { get; set; }
+    public string FileUrl { get; set; } = null!;
+    public string GeneratedBy { get; set; } = null!;  // "System" o "User"
+    public DateTime GeneratedAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+
+    // Navigation Properties
+    public Shipment Shipment { get; set; } = null!;
+}
+
+public enum DocumentType { ServiceOrder, Waybill, Manifest, TripSheet, POD }
 ```
 
 ### Entidad Tenant (Actualizada)
@@ -556,12 +690,14 @@ public class Tenant
 
 ```csharp
 // Estados del Sistema
-public enum ShipmentStatus { Pending, Loaded, InTransit, AtHub, OutForDelivery, Delivered, Exception }
+public enum ShipmentStatus { PendingApproval, Approved, Loaded, InTransit, AtHub, OutForDelivery, Delivered, Exception }
 public enum ShipmentPriority { Normal, Urgent, Express }
 public enum DriverStatus { Available, OnRoute, Inactive }
 public enum LocationType { Warehouse, Hub, CrossDock, Customer }
+public enum TruckType { DryBox, Refrigerated, HazmatTank, Flatbed, Armored }
 public enum CheckpointStatus { Loaded, QrScanned, ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
 public enum FleetLogReason { ShiftChange, Breakdown, Reassignment }
+public enum DocumentType { ServiceOrder, Waybill, Manifest, TripSheet, POD }
 ```
 
 ---
