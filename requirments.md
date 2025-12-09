@@ -1,7 +1,7 @@
 # PARHELION-WMS | Documento de Requerimientos de Software
 
 **Cliente:** Parhelion Logistics S.A. de C.V. (Monterrey, N.L.)
-**Versión:** 1.3 (MVP - Minimum Viable Product)
+**Versión:** 2.0 (Final - Scope Freeze)
 **Fecha:** Diciembre 2025
 **Líder Técnico:** MetaCodeX
 
@@ -9,9 +9,9 @@
 
 ## 1. Visión del Proyecto
 
-La empresa "Parhelion Logistics" actualmente gestiona su flota de camiones y envíos mediante hojas de cálculo de Excel y mensajes de WhatsApp. Esto ha provocado pérdida de paquetes y camiones viajando vacíos.
+La empresa "Parhelion Logistics" actualmente gestiona su flota de camiones y envíos mediante hojas de cálculo de Excel y mensajes de WhatsApp. Esto ha provocado pérdida de paquetes, camiones viajando vacíos y falta de documentación legal para inspecciones.
 
-**El Objetivo:** Desarrollar una plataforma Web centralizada (WMS) que permita administrar la flotilla, asignar cargas y rastrear el estatus de los envíos en tiempo real. El sistema debe ser robusto, seguro y accesible desde dispositivos móviles para los choferes.
+**El Objetivo:** Desarrollar una plataforma Web centralizada (WMS) de nivel empresarial que permita administrar flotillas tipificadas, gestionar redes de distribución Hub & Spoke, generar documentación B2B legal y rastrear el estatus de los envíos mediante checkpoints manuales.
 
 **Objetivo Secundario (Demo Pública):** El sistema servirá también como **portafolio técnico interactivo**, permitiendo a reclutadores y visitantes probar el simulador sin afectar datos reales de producción.
 
@@ -25,26 +25,36 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
 
 - Es quien contrata el servicio de logística.
 - Define su operación mediante un **formulario de onboarding** (ver Módulo 0).
-- Puede tener múltiples camiones y choferes bajo su cuenta.
+- Puede tener múltiples camiones, choferes y ubicaciones bajo su cuenta.
 
 ### B. Administrador (Gerente de Tráfico)
 
 - Tiene acceso total al sistema dentro de la cuenta del Cliente.
-- Puede dar de alta camiones y choferes.
-- Crea los envíos.
-- Asigna los envíos a los camiones y choferes.
+- Configura la red logística (Hubs, rutas, enlaces).
+- Da de alta camiones tipificados y choferes.
+- Crea envíos y asigna rutas predefinidas.
+- Genera documentación B2B (Carta Porte, Manifiestos).
 
-### C. Chofer (Operador)
+### C. Almacenista (Operador de Bodega)
 
-- Tiene acceso limitado (solo lectura de su carga).
-- Puede ver los envíos que tiene asignados para hoy.
+- Acceso a la app de operaciones (React PWA en tablet).
+- Gestiona la carga de camiones.
+- Escanea códigos QR para transferencia de custodia.
+- Valida peso y volumen antes de despacho.
+
+### D. Chofer (Operador de Campo)
+
+- Acceso a la app móvil (React PWA).
+- Ve la Hoja de Ruta con sus paradas asignadas.
+- Confirma llegadas a Hubs y entregas finales.
+- Captura firma digital del receptor (POD).
 - **Acción Crítica:** Es el único que puede cambiar el estatus de un envío a "Entregado".
 
-### D. Visitante (Demo/Reclutador)
+### E. Visitante (Demo/Reclutador)
 
 - Accede al sistema en **Modo Demo** sin registro.
 - Puede probar todas las funcionalidades con datos simulados.
-- Su progreso se guarda localmente (caché/localStorage) o en una sesión temporal en BD.
+- Su progreso se guarda en una sesión temporal en BD que expira en 24-48 horas.
 
 ---
 
@@ -57,20 +67,28 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
   - Nombre de la Empresa / Operación.
   - Cantidad de Camiones (flotilla).
   - Cantidad de Choferes disponibles.
-- [ ] **Alta de Recursos:** Después del registro, el cliente puede dar de alta cada camión y cada chofer con su información detallada.
+- [ ] **Alta de Recursos:** Después del registro, el cliente puede dar de alta camiones, choferes y ubicaciones.
 - [ ] **Multi-tenancy:** Cada cliente tiene su propio espacio aislado de datos.
 
 ### Módulo 1: Seguridad y Acceso
 
 - [ ] **Login:** El sistema debe permitir el ingreso mediante Email y Contraseña.
 - [ ] **Autenticación:** Debe usar tokens seguros (JWT). La sesión debe expirar automáticamente tras 2 horas de inactividad.
+- [ ] **Roles:** Admin, Driver, Warehouse (Almacenista), DemoUser.
 - [ ] **Protección:** Un Chofer no debe poder acceder a las pantallas de Administración (Rutas protegidas).
 - [ ] **Recuperación de Contraseña:** Flujo básico de "Olvidé mi contraseña" con enlace temporal.
 
 ### Módulo 2: Gestión de Flotilla (Camiones)
 
-- [ ] **Listado:** Ver todos los camiones disponibles, su placa, modelo y chofer asignado.
-- [ ] **Alta de Camión:** Registrar placa (ej. "NL-554-X"), modelo y **Capacidad Máxima de Carga (kg)**.
+- [ ] **Listado:** Ver todos los camiones disponibles, su placa, modelo, tipo y chofer asignado.
+- [ ] **Alta de Camión:** Registrar placa (ej. "NL-554-X"), modelo, **Tipo de Camión** y capacidades.
+- [ ] **Tipos de Camión (TruckType):**
+  - `DryBox` - Caja Seca (Estándar)
+  - `Refrigerated` - Termo/Refrigerado (Cadena de frío)
+  - `HazmatTank` - Pipa (Materiales peligrosos)
+  - `Flatbed` - Plataforma (Carga pesada)
+  - `Armored` - Blindado (Alto valor)
+- [ ] **Capacidades:** Peso máximo (kg) y volumen máximo (m³).
 - [ ] **Validación:** No pueden existir dos camiones con la misma placa dentro del mismo Cliente.
 
 ### Módulo 2.5: Gestión de Choferes
@@ -78,40 +96,107 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
 - [ ] **Listado:** Ver todos los choferes registrados y su estatus (Disponible, En Ruta, Inactivo).
 - [ ] **Alta de Chofer:** Registrar nombre, teléfono, email y licencia.
 - [ ] **Asignación Híbrida Chofer-Camión:**
-  - **Modo Fijo:** Un chofer puede tener un camión asignado permanentemente ("su unidad").
-  - **Modo Dinámico:** El Admin puede reasignar un chofer a otro camión según disponibilidad o urgencia del envío.
-  - El sistema debe mostrar claramente qué choferes están libres y cuáles están en ruta.
+  - **default_truck_id:** Camión fijo asignado ("su unidad").
+  - **current_truck_id:** Camión que conduce actualmente (puede diferir).
+- [ ] **Bitácora de Flotilla (FleetLog):** Registro automático de cada cambio de vehículo con motivo (ShiftChange, Breakdown, Reassignment).
 
-### Módulo 3: Logística (Envíos)
+### Módulo 3: Red Logística (Locations)
 
-- [ ] **Crear Envío:** Registrar Destinatario, Dirección Origen, Dirección Destino, **Peso del Paquete (kg)** y **Prioridad (Normal/Urgente)**.
-- [ ] **Estatus del Envío:** Todo envío nace con el estatus `En Almacén`.
-- [ ] **Asignación (Lógica de Negocio):**
-  - El Administrador asigna un envío a un camión **y** a un chofer.
-  - El estatus cambia automáticamente a `En Ruta`.
-  - **REGLA DE ORO (Validación de Peso):** El sistema **NO** debe permitir asignar un paquete a un camión si la suma de pesos supera la capacidad máxima del vehículo.
-  - **REGLA DE URGENCIA:** Los envíos marcados como `Urgente` deben priorizarse visualmente y el sistema puede sugerir choferes disponibles inmediatamente.
+- [ ] **Nodos de Red:** Gestión de ubicaciones con código único (estilo aeropuerto: MTY, GDL, MM).
+- [ ] **Tipos de Ubicación (LocationType):**
+  - `RegionalHub` - Nodo central, recibe y despacha masivo
+  - `CrossDock` - Transferencia rápida sin almacenamiento
+  - `Warehouse` - Bodega de almacenamiento prolongado
+  - `Store` - Punto de venta final (solo recibe)
+  - `SupplierPlant` - Fábrica de origen (solo despacha)
+- [ ] **Capacidades:** Flags `can_receive` y `can_dispatch` por ubicación.
 
-### Módulo 4: Operación en Campo (App Chofer)
+### Módulo 3.5: Enrutamiento (Hub & Spoke)
 
-- [ ] **Mis Envíos:** El chofer ve una lista filtrada solo con _sus_ paquetes asignados.
-- [ ] **Confirmar Entrega:** Botón para marcar el envío como `Entregado`. Esto registra la fecha y hora exacta del evento.
+- [ ] **Enlaces de Red (NetworkLink):** Conexiones permitidas entre ubicaciones.
+  - `FirstMile` - Recolección: Cliente/Proveedor → Hub
+  - `LineHaul` - Carretera: Hub → Hub (larga distancia)
+  - `LastMile` - Entrega: Hub → Cliente/Tienda
+- [ ] **Regla de Conexión:** Clientes no pueden conectarse directamente entre sí.
+- [ ] **Rutas Predefinidas (RouteBlueprint):** Secuencia de paradas con tiempos de tránsito.
+- [ ] **Cálculo de ETA:** `scheduled_departure + SUM(transit_times)`.
 
-### Módulo 5: Dashboard (Panel de Control)
+### Módulo 4: Envíos (Shipments)
+
+- [ ] **Crear Envío:** Registrar origen, destino, ruta asignada, destinatario y prioridad.
+- [ ] **Flujo de Estados:**
+  - `PendingApproval` - Orden de servicio esperando revisión
+  - `Approved` - Envío aprobado, listo para asignar
+  - `Loaded` - Paquete cargado en camión
+  - `InTransit` - En movimiento entre ubicaciones
+  - `AtHub` - Temporalmente en un centro de distribución
+  - `OutForDelivery` - En camino al destinatario final
+  - `Delivered` - Entrega confirmada, POD capturado
+  - `Exception` - Problema que requiere atención
+
+### Módulo 4.5: Manifiesto de Carga (ShipmentItems)
+
+- [ ] **Partidas:** SKU, descripción, cantidad, dimensiones, peso.
+- [ ] **Peso Volumétrico:** `(Largo × Ancho × Alto) / 5000`
+- [ ] **Valor Declarado:** Para cálculo de seguro.
+- [ ] **Flags Especiales:**
+  - `is_fragile` - Requiere manejo cuidadoso
+  - `is_hazardous` - Material peligroso (HAZMAT)
+  - `requires_refrigeration` - Cadena de frío
+- [ ] **Instrucciones de Estiba:** "No apilar más de 2 niveles".
+
+### Módulo 5: Validación de Compatibilidad (Hard Constraints)
+
+- [ ] **Cadena de Frío:** Items con `requires_refrigeration=true` SOLO en camiones `Refrigerated`.
+- [ ] **HAZMAT:** Items con `is_hazardous=true` SOLO en camiones `HazmatTank`.
+- [ ] **Alto Valor:** Si `SUM(declared_value) > $1,000,000`, requiere camión `Armored`.
+- [ ] **Capacidad:** La suma de peso/volumen NO puede exceder la capacidad del camión.
+
+### Módulo 6: Trazabilidad (Checkpoints)
+
+- [ ] **Bitácora de Eventos:** Cada acción genera un `ShipmentCheckpoint`.
+- [ ] **Códigos de Checkpoint:**
+  - `Loaded` - Paquete cargado en camión (manual)
+  - `QrScanned` - Paquete escaneado por chofer (cadena custodia)
+  - `ArrivedHub` - Llegó a un Hub/CEDIS
+  - `DepartedHub` - Salió del Hub hacia siguiente destino
+  - `OutForDelivery` - En camino al destinatario final
+  - `DeliveryAttempt` - Intento de entrega
+  - `Delivered` - Entregado exitosamente
+  - `Exception` - Problema reportado
+- [ ] **Inmutabilidad:** Los checkpoints no se modifican, solo se agregan nuevos.
+
+### Módulo 7: QR Handshake (Cadena de Custodia)
+
+- [ ] **Generación de QR:** El sistema genera un QR único por envío.
+- [ ] **Escaneo:** El Chofer usa la cámara de la app React para escanear.
+- [ ] **Transferencia de Custodia:** El backend registra `was_qr_scanned=true` y crea checkpoint `QrScanned`.
+- [ ] **Librerías:**
+  - Angular: `angularx-qrcode`
+  - React: `react-qr-reader`
+
+### Módulo 8: Documentación B2B
+
+- [ ] **Orden de Servicio:** Petición inicial del cliente a Admin.
+- [ ] **Carta Porte (Waybill):** Documento legal SAT con QR para inspecciones.
+- [ ] **Manifiesto de Carga:** Checklist de estiba para almacenista.
+- [ ] **Hoja de Ruta (TripSheet):** Itinerario con ventanas de entrega.
+- [ ] **POD (Proof of Delivery):** Firma digital del receptor, timestamp, incidencias.
+
+### Módulo 9: Dashboard (Panel de Control)
 
 - [ ] **KPIs Rápidos:** Mostrar tarjetas con:
-  - Total de Envíos en Almacén (Pendientes).
-  - Total de Envíos en Ruta (Activos).
-  - Total de Envíos Entregados (Histórico).
+  - Total de Envíos por Estado.
   - Choferes Disponibles vs En Ruta.
+  - Ocupación de Flota.
+  - Entregas del Día.
+- [ ] **Timeline de Envío:** Visualización vertical tipo Metro.
 
 ### Módulo 10: Demo Pública / Modo Simulador
 
 - [ ] **Acceso sin Registro:** Botón "Probar Demo" en la landing page.
-- [ ] **Datos de Prueba:** Carga automática de datos ficticios (camiones, choferes, envíos de ejemplo).
-- [ ] **Persistencia de Sesión:**
-  - **Opción A (LocalStorage):** El progreso del usuario se guarda en el navegador (sin backend).
-  - **Opción B (Sesión Temporal en BD):** Se crea una cuenta temporal con UUID que expira en 24-48 horas.
+- [ ] **Datos de Prueba:** Carga automática de datos ficticios (red de Hubs, camiones, choferes, envíos).
+- [ ] **Sesión Temporal:** Cuenta temporal con UUID que expira en 24-48 horas.
 - [ ] **Aislamiento:** Los datos de demo NO afectan a usuarios reales.
 - [ ] **Uso Portfolio:** El sistema será visible para reclutadores como demostración de habilidades técnicas.
 
@@ -126,11 +211,13 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
 - **Base de Datos:** PostgreSQL (Relacional).
 - **ORM:** Entity Framework Core (Code First).
 
-### Frontend (Web)
+### Frontend (Híbrido)
 
-- **Framework:** Angular 18+.
-- **UI Kit:** Angular Material o PrimeNG.
-- **Diseño:** Responsivo (Debe verse bien en la Laptop del Admin y en el Celular del Chofer).
+| Área              | Tecnología      | Dispositivo | Usuario     |
+| ----------------- | --------------- | ----------- | ----------- |
+| **Control Tower** | Angular 18      | PC / Laptop | Admin       |
+| **Operaciones**   | React (Web/PWA) | Tablet      | Almacenista |
+| **Campo**         | React (Web/PWA) | Celular     | Chofer      |
 
 ### Infraestructura (DevOps)
 
@@ -145,11 +232,12 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
 
 El proyecto se considera exitoso si:
 
-1.  El código compila sin errores.
-2.  La base de datos se genera automáticamente con Migraciones.
-3.  Un usuario puede hacer el flujo completo: _Onboarding -> Login -> Crear Camión -> Crear Chofer -> Crear Paquete -> Asignar -> Entregar_.
-4.  El sistema está desplegado en internet y es accesible públicamente.
-5.  Un reclutador puede acceder al **Modo Demo** y probar el sistema sin registrarse.
+1. El código compila sin errores.
+2. La base de datos se genera automáticamente con Migraciones.
+3. Un usuario puede hacer el flujo completo: _Onboarding -> Login -> Configurar Red -> Crear Camión Tipificado -> Crear Chofer -> Crear Envío con Ruta -> Cargar (QR Scan) -> Tránsito por Hubs -> Entregar (POD)_.
+4. El sistema valida compatibilidad de carga (refrigerado, HAZMAT, peso).
+5. El sistema está desplegado en internet y es accesible públicamente.
+6. Un reclutador puede acceder al **Modo Demo** y probar el sistema sin registrarse.
 
 ---
 
@@ -158,31 +246,24 @@ El proyecto se considera exitoso si:
 > [!NOTE]
 > Los siguientes módulos están **planificados para después del lanzamiento del MVP**. Se implementarán una vez que el sistema core esté estable y en producción.
 
-### Módulo 6: Notificaciones y Mensajería (Serverless)
-
-El sistema utilizará una arquitectura desacoplada para el envío de correos transaccionales.
+### Módulo 11: Notificaciones y Mensajería (Serverless)
 
 - [ ] **Infraestructura:** Integración con **Cloudflare Workers** + **Resend** API.
 - [ ] **Alerta de Asignación:** Correo automático al Chofer con detalles del envío.
 - [ ] **Reporte de Entrega:** Correo de confirmación al Cliente con fecha/hora exacta.
 
-### Módulo 7: Asignación Inteligente (Smart Recommendations)
+### Módulo 12: Asignación Inteligente (Smart Recommendations)
 
 - [ ] **Algoritmo de Sugerencia:** Resaltar camiones recomendados basándose en:
-  - Disponibilidad de carga (Peso).
+  - Disponibilidad de carga (Peso/Volumen).
+  - Tipo de camión compatible con la carga.
   - Coincidencia de Zona/Destino (Para agrupar envíos).
 
-### Módulo 8: Reportes y Exportación Dinámica
+### Módulo 13: Reportes y Exportación Dinámica
 
 - [ ] **Filtros de Fecha Flexibles:** Rango personalizado de fechas.
-- [ ] **Exportación Excel (.xlsx):** ID, Cliente, Direcciones, Chofer, Estatus, Fechas.
+- [ ] **Exportación Excel (.xlsx):** ID, Cliente, Ruta, Chofer, Estatus, Timestamps.
 - [ ] **Casos de Uso:** Reporte Diario, Proyección y Cierre de Mes.
-
-### Módulo 9: Comprobante Digital de Entrega (POD)
-
-- [ ] **Generación Automática:** PDF con diseño corporativo al entregar.
-- [ ] **Contenido:** Folio UUID, Peso, Trazabilidad (Cliente -> Chofer -> Destinatario), Timestamp.
-- [ ] **Accesibilidad:** Descargable por Chofer y Admin.
 
 ---
 
@@ -191,12 +272,13 @@ El sistema utilizará una arquitectura desacoplada para el envío de correos tra
 > [!IMPORTANT]
 > Para cumplir con la fecha de entrega del MVP (Q1 2026), las siguientes funcionalidades están **explícitamente excluidas**:
 
-| Funcionalidad        | Razón de Exclusión                                                    |
-| -------------------- | --------------------------------------------------------------------- |
-| **Pagos en Línea**   | Sistema operativo/logístico, no gestiona cobros ni facturación (SAT). |
-| **Rastreo GPS Real** | Ubicación basada en estatus manual, no telemetría GPS física.         |
-| **Chat en Vivo**     | Se usarán notificaciones por correo (Fase 2).                         |
+| Funcionalidad              | Razón de Exclusión                                                     |
+| -------------------------- | ---------------------------------------------------------------------- |
+| **Pagos en Línea**         | Sistema operativo/logístico, no gestiona cobros ni facturación (SAT).  |
+| **Rastreo GPS Real**       | Ubicación basada en confirmación manual de checkpoints, no telemetría. |
+| **Chat en Vivo**           | Se usarán notificaciones por correo (Fase 2).                          |
+| **Cálculo de Ruta Óptima** | Rutas predefinidas por Admin, no algoritmo de optimización automático. |
 
 ---
 
-**Nota del Cliente:** "Necesitamos esto funcionando para el Q1 del 2026. La prioridad es la estabilidad de los datos y la facilidad de uso para los choferes."
+**Nota del Cliente:** "Necesitamos esto funcionando para el Q1 del 2026. La prioridad es la estabilidad de los datos, la validación de compatibilidad de carga y la facilidad de uso para los operadores."

@@ -9,29 +9,58 @@
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-Sistema de Gestión de Almacén y Logística (Warehouse Management System) para la administración de flotillas, choferes y envíos.
+Sistema de Gestión de Almacén y Logística (Warehouse Management System) para la administración de flotillas, choferes, envíos y redes de distribución B2B.
 
-> **Estado del Proyecto:** En Desarrollo Activo (MVP)
+> **Estado del Proyecto:** Diseño Finalizado - Listo para Implementación
 
 ---
 
 ## Descripción
 
-**Parhelion-WMS** es una plataforma SaaS multi-tenant centralizada diseñada para resolver la fragmentación logística en empresas de transporte. Permite gestionar la operación completa desde una sola interfaz segura y escalable.
+**Parhelion-WMS** es una plataforma SaaS multi-tenant centralizada diseñada para resolver la fragmentación logística en empresas de transporte B2B. Gestiona la operación completa desde una sola interfaz segura y escalable: flotillas tipificadas, red de distribución Hub & Spoke, trazabilidad por checkpoints y documentación legal (Carta Porte, POD).
 
 **Objetivo Técnico:** Implementación de **Clean Architecture** y **Domain-Driven Design (DDD)** en un entorno de producción utilizando .NET 8, Angular, React y contenedores Docker.
 
 ---
 
-## Características (MVP)
+## Características (MVP Final)
+
+### Core
 
 - [x] Documentación de requerimientos y esquema de base de datos
 - [ ] **Arquitectura Base:** Configuración de Clean Architecture y estructura de proyecto
 - [ ] **Multi-tenancy:** Aislamiento de datos por cliente/empresa
-- [ ] **Gestión de Flotilla:** Control de camiones, choferes y cambios de vehículo
-- [ ] **Red Logística:** Sedes, Hubs, CEDIS y puntos de entrega
-- [ ] **Trazabilidad:** Bitácora de checkpoints y eventos en tiempo real
-- [ ] **Logística:** Validación de peso/volumen y asignación de rutas
+
+### Gestión de Flotilla
+
+- [ ] **Camiones Tipificados:** DryBox, Refrigerado, HAZMAT, Plataforma, Blindado
+- [ ] **Choferes:** Asignación fija (default_truck) y dinámica (current_truck)
+- [ ] **Bitácora de Flotilla:** Historial de cambios de vehículo (FleetLog)
+
+### Red Logística (Hub & Spoke)
+
+- [ ] **Nodos de Red:** RegionalHub, CrossDock, Warehouse, Store, SupplierPlant
+- [ ] **Códigos Aeroportuarios:** Identificadores únicos por ubicación (MTY, GDL, MM)
+- [ ] **Enlaces de Red:** Conexiones FirstMile, LineHaul, LastMile
+- [ ] **Rutas Predefinidas:** RouteBlueprint con paradas y tiempos de tránsito
+
+### Envíos y Trazabilidad
+
+- [ ] **Manifiesto de Carga:** Items con peso volumétrico y valor declarado
+- [ ] **Restricciones de Compatibilidad:** Cadena de frío, HAZMAT, Alto valor
+- [ ] **Checkpoints:** Bitácora de eventos (Loaded, QrScanned, ArrivedHub, Delivered)
+- [ ] **QR Handshake:** Transferencia de custodia digital mediante escaneo
+
+### Documentación B2B
+
+- [ ] **Orden de Servicio:** Petición inicial del cliente
+- [ ] **Carta Porte (Waybill):** Documento legal SAT para transporte
+- [ ] **Manifiesto de Carga:** Checklist de estiba para almacenista
+- [ ] **Hoja de Ruta:** Itinerario con ventanas de entrega
+- [ ] **POD (Proof of Delivery):** Firma digital del receptor
+
+### Operación
+
 - [ ] **Seguridad:** Autenticación JWT con roles (Admin/Chofer/Almacenista)
 - [ ] **Dashboard:** KPIs operativos en tiempo real
 - [ ] **Modo Demo:** Acceso para reclutadores sin registro previo
@@ -74,6 +103,26 @@ graph TD
     Infra --> Domain
 ```
 
+### Topología de Red (Hub & Spoke)
+
+```mermaid
+graph TD
+    subgraph "Proveedores"
+        A[EMP-A]
+        B[EMP-B]
+    end
+    subgraph "Red de Hubs"
+        MM((MM))
+        CC((CC))
+    end
+    subgraph "Clientes"
+        G[EMP-G]
+    end
+    B -->|FirstMile| MM
+    MM ==>|LineHaul| CC
+    CC -->|LastMile| G
+```
+
 ---
 
 ## Estructura del Proyecto
@@ -93,7 +142,23 @@ src/
 | Documento                                        | Descripción                                   |
 | :----------------------------------------------- | :-------------------------------------------- |
 | [Requerimientos (MVP)](./requirments.md)         | Especificación funcional completa del sistema |
-| [Esquema de Base de Datos](./database-schema.md) | Diagrama ER y definiciones de entidades       |
+| [Esquema de Base de Datos](./database-schema.md) | Diagrama ER, entidades y reglas de negocio    |
+
+---
+
+## Entidades Principales
+
+| Entidad              | Descripción                                    |
+| :------------------- | :--------------------------------------------- |
+| `Tenant`             | Cliente/Empresa (Multi-tenancy)                |
+| `Location`           | Nodo de red con código único (Hub, Store, etc) |
+| `Truck`              | Vehículo tipificado con capacidad              |
+| `Driver`             | Chofer con camión fijo y actual                |
+| `Shipment`           | Envío con ruta asignada y documentos           |
+| `ShipmentItem`       | Partida del manifiesto con peso volumétrico    |
+| `ShipmentCheckpoint` | Evento de trazabilidad                         |
+| `RouteBlueprint`     | Ruta predefinida con paradas                   |
+| `NetworkLink`        | Conexión entre nodos (adyacencia)              |
 
 ---
 
@@ -110,4 +175,4 @@ src/
 
 **MetaCodeX** | 2025
 
-_Proyecto desarrollado como portafolio profesional de Arquitectura de Software._
+_Proyecto desarrollado como portafolio profesional de Arquitectura de Software y Sistemas Logísticos B2B._
