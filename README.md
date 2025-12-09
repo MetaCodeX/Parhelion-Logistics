@@ -4,6 +4,7 @@
 
 ![.NET 8](https://img.shields.io/badge/.NET%208-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
 ![Angular](https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
@@ -18,7 +19,7 @@ Sistema de Gestión de Almacén y Logística (Warehouse Management System) para 
 
 **Parhelion-WMS** es una plataforma SaaS multi-tenant centralizada diseñada para resolver la fragmentación logística en empresas de transporte. Permite gestionar la operación completa desde una sola interfaz segura y escalable.
 
-**Objetivo Técnico:** Implementación de **Clean Architecture** y **Domain-Driven Design (DDD)** en un entorno de producción utilizando .NET 8, Angular y contenedores Docker.
+**Objetivo Técnico:** Implementación de **Clean Architecture** y **Domain-Driven Design (DDD)** en un entorno de producción utilizando .NET 8, Angular, React y contenedores Docker.
 
 ---
 
@@ -27,10 +28,11 @@ Sistema de Gestión de Almacén y Logística (Warehouse Management System) para 
 - [x] Documentación de requerimientos y esquema de base de datos
 - [ ] **Arquitectura Base:** Configuración de Clean Architecture y estructura de proyecto
 - [ ] **Multi-tenancy:** Aislamiento de datos por cliente/empresa
-- [ ] **Gestión de Flotilla:** Control de camiones y capacidades de carga
-- [ ] **Gestión de Choferes:** Asignación dinámica o fija a unidades
-- [ ] **Logística:** Validación de peso y asignación de rutas
-- [ ] **Seguridad:** Autenticación JWT con roles (Admin/Chofer)
+- [ ] **Gestión de Flotilla:** Control de camiones, choferes y cambios de vehículo
+- [ ] **Red Logística:** Sedes, Hubs, CEDIS y puntos de entrega
+- [ ] **Trazabilidad:** Bitácora de checkpoints y eventos en tiempo real
+- [ ] **Logística:** Validación de peso/volumen y asignación de rutas
+- [ ] **Seguridad:** Autenticación JWT con roles (Admin/Chofer/Almacenista)
 - [ ] **Dashboard:** KPIs operativos en tiempo real
 - [ ] **Modo Demo:** Acceso para reclutadores sin registro previo
 
@@ -38,14 +40,15 @@ Sistema de Gestión de Almacén y Logística (Warehouse Management System) para 
 
 ## Stack Tecnológico
 
-| Capa                | Tecnología                            |
-| :------------------ | :------------------------------------ |
-| **Backend**         | C# / .NET 8 Web API                   |
-| **Base de Datos**   | PostgreSQL 16                         |
-| **ORM**             | Entity Framework Core (Code First)    |
-| **Frontend**        | Angular 18+ (Material Design)         |
-| **Infraestructura** | Docker Compose, Nginx (Reverse Proxy) |
-| **Hosting**         | Digital Ocean Droplet (Linux)         |
+| Capa                     | Tecnología                            | Usuario        |
+| :----------------------- | :------------------------------------ | :------------- |
+| **Backend**              | C# / .NET 8 Web API                   | -              |
+| **Base de Datos**        | PostgreSQL 16                         | -              |
+| **ORM**                  | Entity Framework Core (Code First)    | -              |
+| **Frontend (Admin)**     | Angular 18+ (Material Design)         | Admin          |
+| **Frontend (Operación)** | React (PWA)                           | Chofer/Almacén |
+| **Infraestructura**      | Docker Compose, Nginx (Reverse Proxy) | -              |
+| **Hosting**              | Digital Ocean Droplet (Linux)         | -              |
 
 ---
 

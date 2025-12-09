@@ -1,6 +1,6 @@
 # PARHELION-WMS | Modelo de Base de Datos
 
-**Versión:** 2.0 (Enterprise)
+**Versión:** 2.1 (Enterprise + Operations)
 **Fecha:** Diciembre 2025
 **Motor:** PostgreSQL + Entity Framework Core (Code First)
 
@@ -28,11 +28,14 @@ erDiagram
     %% ========== OPERACIONES ==========
     TRUCK ||--o{ SHIPMENT : "transporta"
     DRIVER ||--o{ SHIPMENT : "entrega"
-    DRIVER }o--o| TRUCK : "asignado a"
+    DRIVER }o--o| TRUCK : "conduce actualmente"
 
     %% ========== TRAZABILIDAD ==========
     SHIPMENT ||--o{ SHIPMENT_ITEM : "contiene"
     SHIPMENT ||--o{ SHIPMENT_CHECKPOINT : "tiene historial"
+
+    %% ========== HISTÓRICOS ==========
+    DRIVER ||--o{ FLEET_LOG : "historial cambios vehículo"
 
     %% ========== ENTIDADES CORE ==========
     TENANT {
@@ -71,7 +74,8 @@ erDiagram
         string full_name
         string phone
         string license_number
-        uuid default_truck_id FK "nullable"
+        uuid default_truck_id FK "nullable - asignación fija"
+        uuid current_truck_id FK "nullable - camión actual"
         string status "Available|OnRoute|Inactive"
         datetime created_at
     }
@@ -113,7 +117,7 @@ erDiagram
         decimal total_volume_m3
         decimal declared_value
         string priority "Normal|Urgent|Express"
-        string status "Pending|InTransit|AtHub|OutForDelivery|Delivered|Exception"
+        string status "Pending|Loaded|InTransit|AtHub|OutForDelivery|Delivered|Exception"
         uuid truck_id FK "nullable"
         uuid driver_id FK "nullable"
         datetime estimated_delivery
@@ -143,8 +147,19 @@ erDiagram
         uuid id PK
         uuid shipment_id FK
         uuid location_id FK "nullable"
-        string status_code "ArrivedHub|DepartedHub|OutForDelivery|DeliveryAttempt|Delivered|Exception"
+        string status_code "Loaded|ArrivedHub|DepartedHub|OutForDelivery|DeliveryAttempt|Delivered|Exception"
         string remarks "Comentarios del operador"
+        datetime timestamp
+        uuid created_by_user_id FK
+    }
+
+    FLEET_LOG {
+        uuid id PK
+        uuid tenant_id FK
+        uuid driver_id FK
+        uuid old_truck_id FK "nullable - si venía sin camión"
+        uuid new_truck_id FK
+        string reason "ShiftChange|Breakdown|Reassignment"
         datetime timestamp
         uuid created_by_user_id FK
     }
@@ -164,10 +179,26 @@ erDiagram
 
 ### 2.2 Módulo de Flotilla
 
-| Tabla    | Propósito                                                                                |
-| -------- | ---------------------------------------------------------------------------------------- |
-| `DRIVER` | Choferes de la flotilla. Puede tener un camión fijo (`default_truck_id`) o ser dinámico. |
-| `TRUCK`  | Camiones de la flotilla con capacidad máxima en kg y volumen en m3.                      |
+| Tabla       | Propósito                                                                                      |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| `DRIVER`    | Choferes de la flotilla. Tiene camión fijo (`default_truck_id`) y actual (`current_truck_id`). |
+| `TRUCK`     | Camiones de la flotilla con capacidad máxima en kg y volumen en m3.                            |
+| `FLEET_LOG` | Bitácora de cambios de vehículo. Registra cada vez que un chofer cambia de unidad.             |
+
+**Asignación de Camiones:**
+
+| Campo              | Propósito                                               |
+| ------------------ | ------------------------------------------------------- |
+| `default_truck_id` | Camión fijo asignado al chofer ("su unidad")            |
+| `current_truck_id` | Camión que conduce actualmente (puede diferir del fijo) |
+
+**Razones de Cambio de Vehículo (FleetLog):**
+
+| Código         | Descripción                                    |
+| -------------- | ---------------------------------------------- |
+| `ShiftChange`  | Cambio de turno, entrega de unidad             |
+| `Breakdown`    | Avería mecánica, cambio por emergencia         |
+| `Reassignment` | Reasignación administrativa por disponibilidad |
 
 ### 2.3 Módulo de Red Logística (Locations)
 
@@ -229,6 +260,7 @@ Bitácora de eventos del envío. Cada escaneo, movimiento o excepción genera un
 
 | Código            | Descripción                                   |
 | ----------------- | --------------------------------------------- |
+| `Loaded`          | Paquete cargado en camión por almacenista     |
 | `ArrivedHub`      | Llegó a un Hub/CEDIS                          |
 | `DepartedHub`     | Salió del Hub hacia siguiente destino         |
 | `OutForDelivery`  | En camino al destinatario final               |
@@ -243,25 +275,27 @@ Bitácora de eventos del envío. Cada escaneo, movimiento o excepción genera un
 ```mermaid
 stateDiagram-v2
     [*] --> Pending : Crear Envío
-    Pending --> InTransit : Asignar a Camión
+    Pending --> Loaded : Almacenista carga en camión
+    Loaded --> InTransit : Camión sale de sede
     InTransit --> AtHub : Llegada a Hub intermedio
     AtHub --> InTransit : Continuar ruta
     AtHub --> OutForDelivery : Última milla
     InTransit --> OutForDelivery : Ruta directa
-    OutForDelivery --> Delivered : Confirmar entrega
+    OutForDelivery --> Delivered : Chofer confirma entrega
     OutForDelivery --> Exception : Problema en entrega
     Exception --> OutForDelivery : Reintentar
     Delivered --> [*]
 ```
 
-| Estatus         | Código           | Descripción                                |
-| --------------- | ---------------- | ------------------------------------------ |
-| Pendiente       | `Pending`        | Envío registrado, esperando asignación     |
-| En Tránsito     | `InTransit`      | En movimiento entre ubicaciones            |
-| En Hub          | `AtHub`          | Temporalmente en un centro de distribución |
-| En Última Milla | `OutForDelivery` | En camino al destinatario final            |
-| Entregado       | `Delivered`      | Entrega confirmada                         |
-| Excepción       | `Exception`      | Problema que requiere atención             |
+| Estatus         | Código           | Descripción                                 |
+| --------------- | ---------------- | ------------------------------------------- |
+| Pendiente       | `Pending`        | Envío registrado, esperando asignación      |
+| Cargado         | `Loaded`         | Paquete cargado en camión, listo para salir |
+| En Tránsito     | `InTransit`      | En movimiento entre ubicaciones             |
+| En Hub          | `AtHub`          | Temporalmente en un centro de distribución  |
+| En Última Milla | `OutForDelivery` | En camino al destinatario final             |
+| Entregado       | `Delivered`      | Entrega confirmada                          |
+| Excepción       | `Exception`      | Problema que requiere atención              |
 
 ---
 
@@ -490,11 +524,167 @@ public class Tenant
 
 ```csharp
 // Estados del Sistema
-public enum ShipmentStatus { Pending, InTransit, AtHub, OutForDelivery, Delivered, Exception }
+public enum ShipmentStatus { Pending, Loaded, InTransit, AtHub, OutForDelivery, Delivered, Exception }
 public enum ShipmentPriority { Normal, Urgent, Express }
 public enum DriverStatus { Available, OnRoute, Inactive }
 public enum LocationType { Warehouse, Hub, CrossDock, Customer }
-public enum CheckpointStatus { ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
+public enum CheckpointStatus { Loaded, ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
+public enum FleetLogReason { ShiftChange, Breakdown, Reassignment }
+```
+
+---
+
+## 11. Arquitectura Operativa (Stack Híbrido)
+
+El sistema utiliza un stack tecnológico híbrido para cubrir las necesidades de diferentes usuarios:
+
+| Área              | Usuario     | Tecnología      | Dispositivo | Justificación                              |
+| ----------------- | ----------- | --------------- | ----------- | ------------------------------------------ |
+| **Control Tower** | Admin       | Angular 18      | PC / Laptop | Tablas complejas, dashboards, reportes     |
+| **Operaciones**   | Almacenista | React (Web/PWA) | Tablet      | Interfaz táctil, checklists de carga       |
+| **Campo**         | Chofer      | React (Web/PWA) | Celular     | Botones grandes, uso con una mano, offline |
+
+**Filosofía de Diseño:**
+
+- El sistema no usa GPS automático ni sensores IoT
+- La trazabilidad se basa en **confirmación manual** por parte de los operadores
+- Cada acción del usuario genera un `ShipmentCheckpoint` o `FleetLog`
+
+---
+
+## 12. Escenarios de Simulación (Lógica de Negocio)
+
+### Escenario A: Chofer llega a una sede
+
+**Actor:** Chofer (App React)
+
+**Flujo:**
+
+1. El chofer abre la app y selecciona su viaje activo
+2. Presiona el botón "Confirmar Llegada"
+3. El backend crea un `ShipmentCheckpoint` con `StatusCode = ArrivedHub`
+4. Se registra `Timestamp = DateTime.UtcNow`
+5. El estatus del envío cambia a `AtHub`
+
+```mermaid
+sequenceDiagram
+    participant Chofer
+    participant API
+    participant DB
+
+    Chofer->>API: POST /shipments/{id}/checkpoint
+    Note right of Chofer: { action: "ArrivedHub", locationId: "..." }
+    API->>DB: INSERT ShipmentCheckpoint
+    API->>DB: UPDATE Shipment SET status = 'AtHub'
+    API-->>Chofer: 200 OK
+```
+
+### Escenario B: Chofer cambia de camión
+
+**Actor:** Chofer o Admin
+
+**Flujo:**
+
+1. El usuario accede a "Cambiar Unidad" en el perfil del chofer
+2. Selecciona el nuevo camión de la lista de disponibles
+3. El backend valida que el camión esté libre
+4. Actualiza `Driver.CurrentTruckId` al nuevo camión
+5. Crea un `FleetLog` con el historial del cambio
+
+```mermaid
+sequenceDiagram
+    participant Usuario
+    participant API
+    participant DB
+
+    Usuario->>API: PUT /drivers/{id}/truck
+    Note right of Usuario: { newTruckId: "...", reason: "ShiftChange" }
+    API->>DB: SELECT * FROM trucks WHERE id = newTruckId
+    API->>API: Validar disponibilidad
+    API->>DB: UPDATE Driver SET current_truck_id = newTruckId
+    API->>DB: INSERT FleetLog (old, new, reason, timestamp)
+    API-->>Usuario: 200 OK
+```
+
+### Escenario C: Almacenista carga paquetes en camión
+
+**Actor:** Almacenista (App React en Tablet)
+
+**Flujo:**
+
+1. El almacenista selecciona el camión a cargar
+2. Escanea o selecciona los paquetes pendientes
+3. El backend valida: `Peso Actual + Peso Nuevos <= Capacidad Camión`
+4. Actualiza cada paquete con `TruckId` y `DriverId`
+5. Cambia estatus de paquetes a `Loaded`
+6. Crea un `ShipmentCheckpoint` por cada paquete cargado
+
+```mermaid
+sequenceDiagram
+    participant Almacenista
+    participant API
+    participant DB
+
+    Almacenista->>API: POST /trucks/{id}/load
+    Note right of Almacenista: { shipmentIds: ["...", "..."] }
+    API->>DB: SELECT SUM(weight) FROM shipments WHERE truck_id = id
+    API->>API: Validar capacidad
+    API->>DB: UPDATE Shipments SET truck_id, driver_id, status = 'Loaded'
+    API->>DB: INSERT ShipmentCheckpoints (Loaded)
+    API-->>Almacenista: 200 OK { loaded: 5, rejected: 0 }
+```
+
+---
+
+## 13. Entidad FleetLog (C#)
+
+```csharp
+public class FleetLog
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid DriverId { get; set; }
+    public Guid? OldTruckId { get; set; }
+    public Guid NewTruckId { get; set; }
+    public FleetLogReason Reason { get; set; }
+    public DateTime Timestamp { get; set; }
+    public Guid CreatedByUserId { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public Driver Driver { get; set; } = null!;
+    public Truck? OldTruck { get; set; }
+    public Truck NewTruck { get; set; } = null!;
+    public User CreatedBy { get; set; } = null!;
+}
+```
+
+---
+
+## 14. Entidad Driver Actualizada (C#)
+
+```csharp
+public class Driver
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid UserId { get; set; }
+    public string FullName { get; set; } = null!;
+    public string Phone { get; set; } = null!;
+    public string LicenseNumber { get; set; } = null!;
+    public Guid? DefaultTruckId { get; set; }  // Camión fijo asignado
+    public Guid? CurrentTruckId { get; set; }  // Camión que conduce ahora
+    public DriverStatus Status { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public User User { get; set; } = null!;
+    public Truck? DefaultTruck { get; set; }
+    public Truck? CurrentTruck { get; set; }
+    public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
+    public ICollection<FleetLog> FleetHistory { get; set; } = new List<FleetLog>();
+}
 ```
 
 ---
