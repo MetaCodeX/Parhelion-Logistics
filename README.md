@@ -69,15 +69,16 @@ Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona in
 
 ## Stack Tecnológico
 
-| Capa                     | Tecnología                            | Usuario        |
-| :----------------------- | :------------------------------------ | :------------- |
-| **Backend**              | C# / .NET 8 Web API                   | -              |
-| **Base de Datos**        | PostgreSQL 16                         | -              |
-| **ORM**                  | Entity Framework Core (Code First)    | -              |
-| **Frontend (Admin)**     | Angular 18+ (Material Design)         | Admin          |
-| **Frontend (Operación)** | React (PWA)                           | Chofer/Almacén |
-| **Infraestructura**      | Docker Compose, Nginx (Reverse Proxy) | -              |
-| **Hosting**              | Digital Ocean Droplet (Linux)         | -              |
+| Capa                     | Tecnología                            | Usuario     |
+| :----------------------- | :------------------------------------ | :---------- |
+| **Backend**              | C# / .NET 8 Web API                   | -           |
+| **Base de Datos**        | PostgreSQL 16                         | -           |
+| **ORM**                  | Entity Framework Core (Code First)    | -           |
+| **Frontend (Admin)**     | Angular 18+ (Material Design)         | Admin       |
+| **Frontend (Operacion)** | React + Vite + Tailwind CSS (PWA)     | Almacenista |
+| **Frontend (Campo)**     | React + Vite + Tailwind CSS (PWA)     | Chofer      |
+| **Infraestructura**      | Docker Compose, Nginx (Reverse Proxy) | -           |
+| **Hosting**              | Digital Ocean Droplet (Linux)         | -           |
 
 ---
 
