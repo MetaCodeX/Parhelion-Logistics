@@ -82,6 +82,31 @@ Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona in
 
 ---
 
+## Design System
+
+El proyecto utiliza un estilo visual **Neo-Brutalism** con la paleta de colores "Industrial Solar":
+
+| Token   | Color     | Uso                             |
+| :------ | :-------- | :------------------------------ |
+| `oxide` | `#C85A17` | Acciones, acentos, hover states |
+| `sand`  | `#E8E6E1` | Fondos secundarios              |
+| `black` | `#000000` | Bordes, texto, sombras          |
+| `white` | `#FAFAFA` | Fondos principales              |
+
+### Tipografía
+
+- **Logo:** New Rocker (display font)
+- **Títulos:** Merriweather (serif)
+- **Body:** Inter (sans-serif)
+
+### Componentes
+
+Los frontends incluyen componentes pre-estilizados: `btn`, `btn-primary`, `btn-oxide`, `card`, `input` con sombras brutalist y transiciones sólidas (sin gradientes).
+
+> UI inspirada en [neobrutalism-components](https://github.com/ekmas/neobrutalism-components)
+
+---
+
 ## Arquitectura
 
 El proyecto sigue estrictamente **Clean Architecture** para desacoplar la lógica de negocio de la infraestructura:

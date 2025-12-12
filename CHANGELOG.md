@@ -11,8 +11,33 @@ Historial de cambios del proyecto Parhelion Logistics.
 - Implementar entidades del Domain (Tenant, User, Shipment, etc.)
 - Configurar Entity Framework Core y migraciones
 - Crear endpoints de la API
-- Diseñar interfaces de los frontends
-- Configurar Swagger en el backend
+- PWA Service Workers para modo offline
+
+---
+
+## [0.3.0] - 2025-12-12
+
+### Agregado
+
+- **Sistema de Diseño Neo-Brutalism**: Estilo visual moderno con bordes sólidos y sombras
+  - Paleta "Industrial Solar": Oxide (#C85A17), Sand (#E8E6E1), Black (#000000)
+  - Tipografía: New Rocker (logo), Merriweather (títulos), Inter (body)
+  - Componentes: Buttons, Cards, Inputs con estilo brutalist
+- **Grid Animado**: Fondo con grid cuadriculado naranja y movimiento aleatorio
+  - Dirección random en cada carga de página
+  - 8 direcciones posibles (cardinales + diagonales)
+- **Remote Development**: Frontends configurados para acceso via Tailscale
+  - Vite servers escuchando en `0.0.0.0`
+  - Backend API accesible remotamente
+
+### Configurado
+
+- **Puertos dedicados** via `.env`:
+  - Backend: 5100
+  - Admin: 4100
+  - Operaciones: 5101
+  - Campo: 5102
+- **Endpoint `/health`** en backend API para verificación de estado
 
 ---
 

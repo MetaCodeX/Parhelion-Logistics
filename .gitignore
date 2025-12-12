@@ -66,3 +66,6 @@ TestResults/
 *.tmp
 *.temp
 *.bak
+
+# ===== Local Development Tools =====
+control-panel/

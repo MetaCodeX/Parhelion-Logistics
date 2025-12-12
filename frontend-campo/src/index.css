@@ -1,70 +1,156 @@
+/* Google Fonts - Must be first */
+@import url('https://fonts.googleapis.com/css2?family=New+Rocker&family=Merriweather:wght@700;900&family=Inter:wght@400;500;600;700&display=swap');
+
 @import "tailwindcss";
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ===== PARHELION THEME - TAILWIND V4 ===== */
+@theme {
+  /* Color Palette - Industrial Solar */
+  --color-oxide: #C85A17;
+  --color-oxide-dark: #A84810;
+  --color-sand: #E8E6E1;
+  --color-slate-dark: #2C3E50;
+  
+  /* Typography */
+  --font-logo: 'New Rocker', cursive;
+  --font-heading: 'Merriweather', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* ===== BASE STYLES ===== */
+@layer base {
+  body {
+    @apply font-body antialiased;
   }
-  a:hover {
-    color: #747bff;
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    @apply font-black;
   }
-  button {
-    background-color: #f9f9f9;
+}
+
+/* ===== NEO-BRUTALIST COMPONENTS ===== */
+@layer components {
+  /* Button Base */
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3;
+    @apply font-bold text-sm uppercase tracking-wide;
+    @apply border-2 border-black cursor-pointer;
+    @apply transition-transform duration-100;
+    box-shadow: 4px 4px 0 theme(colors.black);
   }
+  
+  .btn:hover {
+    @apply translate-x-0.5 translate-y-0.5;
+    box-shadow: 2px 2px 0 theme(colors.black);
+  }
+  
+  .btn:active {
+    @apply translate-x-1 translate-y-1;
+    box-shadow: 0 0 0 theme(colors.black);
+  }
+  
+  /* Button Variants */
+  .btn-primary {
+    @apply bg-white text-black;
+  }
+  
+  .btn-primary:hover {
+    @apply bg-oxide text-white;
+  }
+  
+  .btn-oxide {
+    @apply bg-oxide text-white;
+  }
+  
+  .btn-oxide:hover {
+    @apply bg-white text-black;
+  }
+  
+  .btn-black {
+    @apply bg-black text-white;
+  }
+  
+  .btn-black:hover {
+    @apply bg-oxide text-white;
+  }
+  
+  /* Card */
+  .card {
+    @apply bg-white border-2 border-black;
+    box-shadow: 4px 4px 0 theme(colors.black);
+  }
+  
+  .card-sand {
+    @apply bg-sand;
+  }
+  
+  .card-oxide {
+    @apply bg-oxide text-white;
+  }
+  
+  /* Input */
+  .input {
+    @apply w-full px-4 py-3 text-base;
+    @apply bg-white border-2 border-black outline-none;
+    font-family: var(--font-body);
+  }
+  
+  .input:focus {
+    box-shadow: 4px 4px 0 theme(colors.black);
+  }
+  
+  /* Shadow Utility */
+  .shadow-brutal {
+    box-shadow: 4px 4px 0 theme(colors.black);
+  }
+}
+
+/* ===== UTILITIES ===== */
+@layer utilities {
+  .font-logo {
+    font-family: var(--font-logo);
+  }
+  
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+  
+  .font-body {
+    font-family: var(--font-body);
+  }
+}
+
+/* ===== ANIMATED GRID BACKGROUND ===== */
+.grid-background {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.18;
+  background-image: 
+    linear-gradient(rgba(200, 90, 23, 0.6) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(200, 90, 23, 0.6) 2px, transparent 2px);
+  background-size: 40px 40px;
+  animation: grid-move var(--grid-duration, 30s) linear infinite;
+  --grid-x: 0px;
+  --grid-y: 0px;
+}
+
+@keyframes grid-move {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(var(--grid-x), var(--grid-y));
+  }
+}
+
+/* Ensure content is above grid */
+.content-layer {
+  position: relative;
+  z-index: 1;
 }
