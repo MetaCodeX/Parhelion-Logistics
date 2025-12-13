@@ -68,7 +68,7 @@ jobs:
 
       # Validar que las migraciones se aplican correctamente a PostgreSQL
       - name: Install EF Core Tools
-        run: dotnet tool install --global dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 8.0.11
 
       - name: Apply Migrations to PostgreSQL
         run: dotnet ef database update --project src/Parhelion.Infrastructure --startup-project src/Parhelion.API
