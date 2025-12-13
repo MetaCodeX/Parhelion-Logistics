@@ -45,6 +45,14 @@ public class ParhelionDbContext : DbContext
     public DbSet<Truck> Trucks => Set<Truck>();
     public DbSet<FleetLog> FleetLogs => Set<FleetLog>();
     
+    // Empleados y Turnos (v0.4.3)
+    public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<Shift> Shifts => Set<Shift>();
+    
+    // Almacén (v0.4.3)
+    public DbSet<WarehouseZone> WarehouseZones => Set<WarehouseZone>();
+    public DbSet<WarehouseOperator> WarehouseOperators => Set<WarehouseOperator>();
+    
     // Red Logística
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<NetworkLink> NetworkLinks => Set<NetworkLink>();

@@ -32,11 +32,15 @@ public class ShipmentCheckpoint : BaseEntity
     
     /// <summary>Nombre del nuevo custodio (quien recibió)</summary>
     public string? NewCustodian { get; set; }
+    
+    /// <summary>Almacenista que manejó el paquete en este checkpoint</summary>
+    public Guid? HandledByWarehouseOperatorId { get; set; }
 
     // Navigation Properties
     public Shipment Shipment { get; set; } = null!;
     public Location? Location { get; set; }
     public User CreatedBy { get; set; } = null!;
     public Driver? HandledByDriver { get; set; }
+    public WarehouseOperator? HandledByWarehouseOperator { get; set; }
     public Truck? LoadedOntoTruck { get; set; }
 }

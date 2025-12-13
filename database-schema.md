@@ -1,11 +1,13 @@
 # PARHELION-LOGISTICS | Modelo de Base de Datos
 
-**Versión:** 2.3 (Final - Scope Freeze)
-**Fecha:** Diciembre 2025
-**Motor:** PostgreSQL + Entity Framework Core (Code First)
+**Versión:** 2.4 (v0.4.3 - Employee Layer)  
+**Fecha:** Diciembre 2025  
+**Motor:** PostgreSQL + Entity Framework Core (Code First)  
 **Estado:** Diseño Cerrado - Listo para Implementación
 
 > **Nota Técnica:** Esta plataforma unifica WMS (Warehouse Management System) y TMS (Transportation Management System). El módulo de almacén gestiona inventario estático y carga, mientras que el núcleo TMS maneja logística de media milla: gestión de flotas tipificadas, redes Hub & Spoke y trazabilidad de envíos en movimiento.
+
+> **v0.4.3:** Agrega Employee Layer (centraliza datos legales), Shift (turnos), WarehouseZone (zonas de bodega), WarehouseOperator (extensión de empleado para almacenistas), y SuperAdmin (IsSuperAdmin en User).
 
 ---
 
@@ -58,6 +60,18 @@ erDiagram
     DRIVER ||--o{ SHIPMENT_CHECKPOINT : "maneja paquetes"
     TRUCK ||--o{ SHIPMENT_CHECKPOINT : "carga paquetes"
 
+    %% ========== EMPLOYEE LAYER (v0.4.3) ==========
+    TENANT ||--o{ EMPLOYEE : "emplea"
+    TENANT ||--o{ SHIFT : "define turnos"
+    USER ||--o| EMPLOYEE : "tiene perfil de empleado"
+    EMPLOYEE ||--o| DRIVER : "extensión chofer"
+    EMPLOYEE ||--o| WAREHOUSE_OPERATOR : "extensión almacenista"
+    EMPLOYEE }o--o| SHIFT : "tiene turno"
+    LOCATION ||--o{ WAREHOUSE_ZONE : "tiene zonas"
+    LOCATION ||--o{ WAREHOUSE_OPERATOR : "asigna operadores"
+    WAREHOUSE_ZONE ||--o{ WAREHOUSE_OPERATOR : "asigna a zona"
+    WAREHOUSE_OPERATOR ||--o{ SHIPMENT_CHECKPOINT : "maneja paquetes"
+
     %% ========== ENTIDADES CORE ==========
     TENANT {
         uuid id PK
@@ -65,8 +79,14 @@ erDiagram
         string contact_email
         int fleet_size
         int driver_count
-        datetime created_at
         boolean is_active
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     USER {
@@ -77,36 +97,100 @@ erDiagram
         string full_name
         uuid role_id FK
         boolean is_demo_user
-        datetime last_login
-        datetime created_at
+        boolean uses_argon2 "True si usa Argon2id"
+        boolean is_super_admin "v0.4.3 - SuperAdmin del sistema"
+        datetime last_login "nullable"
         boolean is_active
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     ROLE {
         uuid id PK
         string name UK
         string description
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     DRIVER {
         uuid id PK
-        uuid tenant_id FK
-        uuid user_id FK
-        string full_name
-        string phone
+        uuid employee_id FK "v0.4.3 - Referencia a Employee"
         string license_number
+        string license_type "nullable - A|B|C|D|E"
+        datetime license_expiration "nullable"
         uuid default_truck_id FK "nullable - asignación fija"
         uuid current_truck_id FK "nullable - camión actual"
         string status "Available|OnRoute|Inactive"
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
+    }
+
+    %% ========== EMPLOYEE LAYER ENTITIES (v0.4.3) ==========
+    EMPLOYEE {
+        uuid id PK
+        uuid tenant_id FK
+        uuid user_id FK UK "1:1 con User"
+        string phone
         string rfc "nullable - RFC fiscal"
         string nss "nullable - Número de Seguro Social"
         string curp "nullable - CURP"
-        string license_type "nullable - A|B|C|D|E"
-        datetime license_expiration "nullable"
         string emergency_contact "nullable"
         string emergency_phone "nullable"
-        datetime hire_date "nullable - Fecha de contratación"
+        datetime hire_date "nullable"
+        uuid shift_id FK "nullable"
+        string department "nullable - Admin|Operations|Field"
         datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
+    }
+
+    SHIFT {
+        uuid id PK
+        uuid tenant_id FK
+        string name "Matutino|Vespertino|Nocturno"
+        time start_time
+        time end_time
+        string days_of_week "Mon,Tue,Wed,Thu,Fri"
+        boolean is_active
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
+    }
+
+    WAREHOUSE_ZONE {
+        uuid id PK
+        uuid location_id FK
+        string code UK "A1, B2, COLD-1"
+        string name
+        string type "Receiving|Storage|Staging|Shipping|ColdChain|Hazmat"
+        boolean is_active
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
+    }
+
+    WAREHOUSE_OPERATOR {
+        uuid id PK
+        uuid employee_id FK UK "1:1 con Employee"
+        uuid assigned_location_id FK
+        uuid primary_zone_id FK "nullable"
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     TRUCK {
@@ -120,16 +204,19 @@ erDiagram
         boolean is_active
         string vin "nullable - VIN"
         string engine_number "nullable"
-        int year "nullable - Año del vehículo"
+        int year "nullable"
         string color "nullable"
-        string insurance_policy "nullable - Número de póliza"
+        string insurance_policy "nullable"
         datetime insurance_expiration "nullable"
-        string verification_number "nullable - Verificación vehicular"
+        string verification_number "nullable"
         datetime verification_expiration "nullable"
         datetime last_maintenance_date "nullable"
         datetime next_maintenance_date "nullable"
         decimal current_odometer_km "nullable"
         datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     %% ========== ENTIDADES ENTERPRISE ==========
@@ -145,6 +232,9 @@ erDiagram
         boolean is_internal "Propio o externo"
         boolean is_active
         datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     SHIPMENT {
@@ -177,6 +267,9 @@ erDiagram
         datetime assigned_at "nullable"
         datetime delivered_at "nullable"
         datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     SHIPMENT_ITEM {
@@ -197,6 +290,9 @@ erDiagram
         boolean requires_refrigeration
         string stacking_instructions "nullable - Ej: No apilar"
         datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     SHIPMENT_CHECKPOINT {
@@ -244,8 +340,9 @@ erDiagram
         string billing_address "nullable"
         string shipping_address "Dirección de envío"
         string preferred_product_types "nullable - Tipos de productos"
-        string priority "Normal|Low|High|Urgent"
+        string priority "Default heredado a sus envíos - Normal|Low|High|Urgent"
         boolean is_active
+        string notes "nullable - Notas internas"
     }
 
     REFRESH_TOKEN {
@@ -270,6 +367,9 @@ erDiagram
         time total_transit_time "Suma de tiempos de tránsito"
         boolean is_active
         datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     ROUTE_STEP {
@@ -280,6 +380,9 @@ erDiagram
         time standard_transit_time "Tiempo desde parada anterior"
         string step_type "Origin|Intermediate|Destination"
         datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 
     NETWORK_LINK {
@@ -292,6 +395,9 @@ erDiagram
         boolean is_bidirectional "Si aplica en ambas direcciones"
         boolean is_active
         datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
     }
 ```
 
@@ -604,14 +710,37 @@ stateDiagram-v2
 
 ---
 
-## 5. Roles del Sistema (Seed Data)
+## 5. Roles del Sistema y Permisos
+
+### 5.1 Roles (Seed Data)
 
 ```sql
 INSERT INTO roles (id, name, description) VALUES
   ('11111111-1111-1111-1111-111111111111', 'Admin', 'Gerente de Tráfico - Acceso total'),
   ('22222222-2222-2222-2222-222222222222', 'Driver', 'Chofer - Solo ve sus envíos'),
-  ('33333333-3333-3333-3333-333333333333', 'DemoUser', 'Usuario de demostración temporal');
+  ('33333333-3333-3333-3333-333333333333', 'DemoUser', 'Usuario de demostración temporal'),
+  ('44444444-4444-4444-4444-444444444444', 'Warehouse', 'Almacenista - Gestión de carga');
 ```
+
+### 5.2 Permisos por Rol (Inmutables en Código)
+
+> **Nota:** Los permisos están definidos en `RolePermissions.cs` y NO pueden modificarse en runtime.
+
+| Recurso         |     Admin     | Driver  | Warehouse | DemoUser |
+| --------------- | :-----------: | :-----: | :-------: | :------: |
+| **Usuarios**    |     CRUD      |    -    |     -     |    R     |
+| **Camiones**    |     CRUD      |    -    |     R     |    R     |
+| **Choferes**    |     CRUD      |    -    |     R     |    R     |
+| **Clientes**    |     CRUD      |    -    |     -     |    R     |
+| **Envíos**      | CRUD + Assign | ReadOwn |   Read    |    R     |
+| **Items**       |      CRU      |    -    |    RU     |    R     |
+| **Checkpoints** |      CR       |    C    |     C     |    R     |
+| **Rutas**       |     CRUD      |    R    |     R     |    R     |
+| **Ubicaciones** |     CRUD      |    R    |     R     |    R     |
+| **Documentos**  |      CR       | ReadOwn |     -     |    R     |
+| **Fleet Logs**  |      CR       |    -    |     -     |    R     |
+
+**Leyenda:** C=Create, R=Read, U=Update, D=Delete
 
 ---
 
@@ -853,6 +982,10 @@ public enum PackagingType { Pallet, Box, Drum, Piece }
 ### Entidad ShipmentCheckpoint
 
 ```csharp
+/// <summary>
+/// Evento de trazabilidad del envío.
+/// INMUTABLE: Los checkpoints no se modifican, solo se agregan nuevos.
+/// </summary>
 public class ShipmentCheckpoint
 {
     public Guid Id { get; set; }
@@ -863,14 +996,43 @@ public class ShipmentCheckpoint
     public DateTime Timestamp { get; set; }
     public Guid CreatedByUserId { get; set; }
 
+    // ========== TRAZABILIDAD DE CARGUEROS (v0.4.2) ==========
+
+    /// <summary>Chofer que manejó el paquete en este checkpoint</summary>
+    public Guid? HandledByDriverId { get; set; }
+
+    /// <summary>Camión donde se cargó el paquete</summary>
+    public Guid? LoadedOntoTruckId { get; set; }
+
+    /// <summary>Tipo de acción: Loaded, Unloaded, Transferred, Delivered, etc.</summary>
+    public string? ActionType { get; set; }
+
+    /// <summary>Nombre del custodio anterior (quien entregó)</summary>
+    public string? PreviousCustodian { get; set; }
+
+    /// <summary>Nombre del nuevo custodio (quien recibió)</summary>
+    public string? NewCustodian { get; set; }
+
     // Navigation Properties
     public Shipment Shipment { get; set; } = null!;
     public Location? Location { get; set; }
     public User CreatedBy { get; set; } = null!;
+    public Driver? HandledByDriver { get; set; }
+    public Truck? LoadedOntoTruck { get; set; }
 }
 
 public enum CheckpointStatus { Loaded, QrScanned, ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
 ```
+
+**Campos de Trazabilidad de Cargueros:**
+
+| Campo               | Tipo              | Propósito                                                |
+| ------------------- | ----------------- | -------------------------------------------------------- |
+| `HandledByDriverId` | UUID (nullable)   | Chofer que procesó el paquete en este evento             |
+| `LoadedOntoTruckId` | UUID (nullable)   | Camión donde se cargó/descargó el paquete                |
+| `ActionType`        | string (nullable) | Tipo de acción realizada (Loaded, Unloaded, Transferred) |
+| `PreviousCustodian` | string (nullable) | Nombre del custodio que entregó                          |
+| `NewCustodian`      | string (nullable) | Nombre del custodio que recibió                          |
 
 ### Entidad ShipmentDocument
 
@@ -1234,6 +1396,9 @@ public class FleetLog
 ## 14. Entidad Driver Actualizada (C#)
 
 ```csharp
+/// <summary>
+/// Chofer de la flotilla con datos legales mexicanos.
+/// </summary>
 public class Driver
 {
     public Guid Id { get; set; }
@@ -1247,6 +1412,32 @@ public class Driver
     public DriverStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    // ========== DATOS LEGALES (v0.4.2) ==========
+
+    /// <summary>RFC del chofer para facturación</summary>
+    public string? Rfc { get; set; }
+
+    /// <summary>Número de Seguro Social (IMSS)</summary>
+    public string? Nss { get; set; }
+
+    /// <summary>Clave Única de Registro de Población</summary>
+    public string? Curp { get; set; }
+
+    /// <summary>Tipo de licencia: A, B, C, D, E</summary>
+    public string? LicenseType { get; set; }
+
+    /// <summary>Fecha de vencimiento de la licencia</summary>
+    public DateTime? LicenseExpiration { get; set; }
+
+    /// <summary>Nombre del contacto de emergencia</summary>
+    public string? EmergencyContact { get; set; }
+
+    /// <summary>Teléfono del contacto de emergencia</summary>
+    public string? EmergencyPhone { get; set; }
+
+    /// <summary>Fecha de contratación</summary>
+    public DateTime? HireDate { get; set; }
+
     // Navigation Properties
     public Tenant Tenant { get; set; } = null!;
     public User User { get; set; } = null!;
@@ -1254,6 +1445,7 @@ public class Driver
     public Truck? CurrentTruck { get; set; }
     public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
     public ICollection<FleetLog> FleetHistory { get; set; } = new List<FleetLog>();
+    public ICollection<ShipmentCheckpoint> HandledCheckpoints { get; set; } = new List<ShipmentCheckpoint>();
 }
 ```
 

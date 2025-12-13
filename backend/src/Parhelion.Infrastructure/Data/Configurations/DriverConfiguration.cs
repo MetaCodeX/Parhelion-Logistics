@@ -10,31 +10,24 @@ public class DriverConfiguration : IEntityTypeConfiguration<Driver>
     {
         builder.HasKey(d => d.Id);
         
-        builder.Property(d => d.FullName)
-            .IsRequired()
-            .HasMaxLength(200);
-            
-        builder.Property(d => d.Phone)
-            .IsRequired()
-            .HasMaxLength(20);
-            
         builder.Property(d => d.LicenseNumber)
             .IsRequired()
             .HasMaxLength(50);
-
-        // Índice por tenant y status para dashboard
-        builder.HasIndex(d => new { d.TenantId, d.Status });
-        
-        // Relaciones
-        builder.HasOne(d => d.Tenant)
-            .WithMany(t => t.Drivers)
-            .HasForeignKey(d => d.TenantId)
-            .OnDelete(DeleteBehavior.Restrict);
             
-        builder.HasOne(d => d.User)
-            .WithOne(u => u.Driver)
-            .HasForeignKey<Driver>(d => d.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(d => d.LicenseType)
+            .HasMaxLength(10);
+        
+        // Índice único: Un empleado solo puede tener un perfil de driver
+        builder.HasIndex(d => d.EmployeeId).IsUnique();
+        
+        // Índice por status para dashboard
+        builder.HasIndex(d => d.Status);
+        
+        // Relación 1:1 con Employee
+        builder.HasOne(d => d.Employee)
+            .WithOne(e => e.Driver)
+            .HasForeignKey<Driver>(d => d.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
             
         builder.HasOne(d => d.DefaultTruck)
             .WithMany(t => t.DefaultDrivers)

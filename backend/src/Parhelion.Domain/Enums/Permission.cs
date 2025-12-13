@@ -68,5 +68,35 @@ public enum Permission
     
     // ========== FLEET LOGS ==========
     FleetLogsRead = 1100,
-    FleetLogsCreate = 1101
+    FleetLogsCreate = 1101,
+    
+    // ========== EMPLOYEES ==========
+    EmployeesRead = 1200,
+    EmployeesCreate = 1201,
+    EmployeesUpdate = 1202,
+    EmployeesDelete = 1203,
+    
+    // ========== SHIFTS ==========
+    ShiftsRead = 1300,
+    ShiftsCreate = 1301,
+    ShiftsUpdate = 1302,
+    ShiftsDelete = 1303,
+    
+    // ========== WAREHOUSE ZONES ==========
+    WarehouseZonesRead = 1400,
+    WarehouseZonesCreate = 1401,
+    WarehouseZonesUpdate = 1402,
+    WarehouseZonesDelete = 1403,
+    
+    // ========== WAREHOUSE OPERATORS ==========
+    WarehouseOperatorsRead = 1500,
+    WarehouseOperatorsCreate = 1501,
+    WarehouseOperatorsUpdate = 1502,
+    WarehouseOperatorsDelete = 1503,
+    
+    // ========== TENANTS (SuperAdmin only) ==========
+    TenantsRead = 1600,
+    TenantsCreate = 1601,
+    TenantsUpdate = 1602,
+    TenantsDeactivate = 1603  // No Delete, soft-deactivate
 }

@@ -15,6 +15,7 @@ public static class SeedData
     public static readonly Guid DriverRoleId = Guid.Parse("22222222-2222-2222-2222-222222222222");
     public static readonly Guid DemoUserRoleId = Guid.Parse("33333333-3333-3333-3333-333333333333");
     public static readonly Guid WarehouseRoleId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+    public static readonly Guid SystemAdminRoleId = Guid.Parse("55555555-5555-5555-5555-555555555555");
 
     /// <summary>
     /// Inicializa la base de datos con seed data.
@@ -57,6 +58,12 @@ public static class SeedData
                 Id = DemoUserRoleId,
                 Name = "DemoUser",
                 Description = "Usuario de demostración temporal (24-48h)"
+            },
+            new Role
+            {
+                Id = SystemAdminRoleId,
+                Name = "SystemAdmin",
+                Description = "Super Admin - Gestiona tenants y administradores (v0.4.3)"
             }
         };
 

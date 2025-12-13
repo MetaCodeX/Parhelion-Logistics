@@ -39,4 +39,10 @@ public class Location : TenantEntity
     public ICollection<RouteStep> RouteSteps { get; set; } = new List<RouteStep>();
     public ICollection<NetworkLink> OutgoingLinks { get; set; } = new List<NetworkLink>();
     public ICollection<NetworkLink> IncomingLinks { get; set; } = new List<NetworkLink>();
+    
+    /// <summary>Zonas internas de la bodega (si aplica)</summary>
+    public ICollection<WarehouseZone> Zones { get; set; } = new List<WarehouseZone>();
+    
+    /// <summary>Almacenistas asignados a esta ubicación</summary>
+    public ICollection<WarehouseOperator> AssignedWarehouseOperators { get; set; } = new List<WarehouseOperator>();
 }

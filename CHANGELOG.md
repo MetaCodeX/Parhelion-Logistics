@@ -13,6 +13,63 @@ Historial de cambios del proyecto Parhelion Logistics.
 
 ---
 
+## [0.4.3] - 2025-12-13
+
+### Agregado
+
+- **Employee Layer (Centralización de Datos de Empleado)**:
+
+  - Nueva entidad `Employee` con datos legales (RFC, NSS, CURP)
+  - Contacto de emergencia, fecha de contratación, departamento
+  - Relación 1:1 con `User` (usuario del sistema)
+
+- **Sistema de Turnos (`Shift`)**:
+
+  - Nuevo registro de turnos de trabajo por tenant
+  - Campos: StartTime, EndTime, DaysOfWeek
+  - Asignación opcional a empleados
+
+- **Zonas de Bodega (`WarehouseZone`)**:
+
+  - Divisiones internas de ubicaciones (Receiving, Storage, ColdChain, etc.)
+  - Enum `WarehouseZoneType` con 6 tipos de zona
+  - Asignación a operadores de almacén
+
+- **Extensión WarehouseOperator**:
+
+  - Similar a Driver pero para almacenistas
+  - Ubicación asignada, zona primaria
+  - FK en `ShipmentCheckpoint.HandledByWarehouseOperatorId`
+
+- **Super Admin (IsSuperAdmin)**:
+
+  - Flag en `User` para administradores del sistema
+  - Correo format: `nombre@parhelion.com`
+  - Nuevo rol `SystemAdmin` en SeedData
+
+- **20 Nuevos Permisos**:
+
+  - Employees: Read, Create, Update, Delete
+  - Shifts: Read, Create, Update, Delete
+  - WarehouseZones: Read, Create, Update, Delete
+  - WarehouseOperators: Read, Create, Update, Delete
+  - Tenants: Read, Create, Update, Deactivate
+
+### Modificado
+
+- `Driver`: Refactorizado de `TenantEntity` a `BaseEntity`
+  - `UserId` → `EmployeeId` (datos legales movidos a Employee)
+- `User`: Agregado `IsSuperAdmin`, `Employee` navigation
+- `Location`: Agregado `Zones` y `AssignedWarehouseOperators`
+- `ShipmentCheckpoint`: Agregado `HandledByWarehouseOperatorId`
+
+### Tests
+
+- 7 tests de integración E2E para Employee Layer
+- Cobertura: Tenant, User, Employee, Driver, WarehouseOperator, Shift, Checkpoint
+
+---
+
 ## [0.4.2] - 2025-12-13
 
 ### Agregado

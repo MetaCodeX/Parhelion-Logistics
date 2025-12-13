@@ -34,8 +34,16 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test --no-build --verbosity normal || true
+      # E2E Integration Tests - Validates entire system flow
+      - name: Run Integration Tests
+        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: backend/tests/**/test-results.trx
 
   # ===== FRONTEND ADMIN (Angular) =====
   frontend-admin:

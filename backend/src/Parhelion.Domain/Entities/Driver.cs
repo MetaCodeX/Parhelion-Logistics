@@ -4,26 +4,16 @@ using Parhelion.Domain.Enums;
 namespace Parhelion.Domain.Entities;
 
 /// <summary>
-/// Chofer de la flotilla con asignación híbrida de camiones.
-/// - DefaultTruckId: Camión fijo asignado ("su unidad")
-/// - CurrentTruckId: Camión que conduce actualmente (puede diferir)
+/// Extensión de Employee para choferes.
+/// Contiene datos específicos de licencia de conducir y asignación de camiones.
+/// Los datos legales (RFC, NSS, CURP, etc.) están en Employee.
 /// </summary>
-public class Driver : TenantEntity
+public class Driver : BaseEntity
 {
-    public Guid UserId { get; set; }
-    public string FullName { get; set; } = null!;
-    public string Phone { get; set; } = null!;
+    /// <summary>FK a Employee (datos de empleado)</summary>
+    public Guid EmployeeId { get; set; }
     
-    // ========== DATOS LEGALES ==========
-    
-    /// <summary>RFC del chofer para nómina</summary>
-    public string? Rfc { get; set; }
-    
-    /// <summary>Número de Seguro Social (IMSS)</summary>
-    public string? Nss { get; set; }
-    
-    /// <summary>CURP del chofer</summary>
-    public string? Curp { get; set; }
+    // ========== DATOS DE LICENCIA ==========
     
     /// <summary>Número de licencia de conducir</summary>
     public string LicenseNumber { get; set; } = null!;
@@ -33,19 +23,6 @@ public class Driver : TenantEntity
     
     /// <summary>Fecha de vencimiento de la licencia</summary>
     public DateTime? LicenseExpiration { get; set; }
-    
-    // ========== CONTACTO DE EMERGENCIA ==========
-    
-    /// <summary>Nombre del contacto de emergencia</summary>
-    public string? EmergencyContact { get; set; }
-    
-    /// <summary>Teléfono del contacto de emergencia</summary>
-    public string? EmergencyPhone { get; set; }
-    
-    // ========== INFORMACIÓN LABORAL ==========
-    
-    /// <summary>Fecha de contratación</summary>
-    public DateTime? HireDate { get; set; }
     
     // ========== ASIGNACIÓN DE CAMIONES ==========
     
@@ -62,9 +39,9 @@ public class Driver : TenantEntity
     
     public DriverStatus Status { get; set; }
 
-    // Navigation Properties
-    public Tenant Tenant { get; set; } = null!;
-    public User User { get; set; } = null!;
+    // ========== NAVIGATION PROPERTIES ==========
+    
+    public Employee Employee { get; set; } = null!;
     public Truck? DefaultTruck { get; set; }
     public Truck? CurrentTruck { get; set; }
     public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();

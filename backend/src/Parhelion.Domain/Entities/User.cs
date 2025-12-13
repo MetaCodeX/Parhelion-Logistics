@@ -25,13 +25,21 @@ public class User : TenantEntity
     /// </summary>
     public bool UsesArgon2 { get; set; }
     
+    /// <summary>
+    /// Super Admin del sistema (TenantId será NULL).
+    /// Puede crear tenants y asignar administradores.
+    /// Email format: nombre@parhelion.com
+    /// </summary>
+    public bool IsSuperAdmin { get; set; }
+    
     public DateTime? LastLogin { get; set; }
     public bool IsActive { get; set; }
 
     // Navigation Properties
     public Tenant Tenant { get; set; } = null!;
     public Role Role { get; set; } = null!;
-    public Driver? Driver { get; set; }
+    /// <summary>Datos de empleado (si es empleado del tenant)</summary>
+    public Employee? Employee { get; set; }
     public ICollection<ShipmentCheckpoint> CreatedCheckpoints { get; set; } = new List<ShipmentCheckpoint>();
     public ICollection<FleetLog> CreatedFleetLogs { get; set; } = new List<FleetLog>();
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
