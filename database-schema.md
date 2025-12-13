@@ -84,9 +84,6 @@ erDiagram
         datetime updated_at "nullable"
         boolean is_deleted
         datetime deleted_at "nullable"
-        datetime updated_at "nullable"
-        boolean is_deleted
-        datetime deleted_at "nullable"
     }
 
     USER {
@@ -112,9 +109,6 @@ erDiagram
         string name UK
         string description
         datetime created_at
-        datetime updated_at "nullable"
-        boolean is_deleted
-        datetime deleted_at "nullable"
         datetime updated_at "nullable"
         boolean is_deleted
         datetime deleted_at "nullable"
