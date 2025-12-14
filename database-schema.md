@@ -902,22 +902,51 @@ flowchart LR
 
 ## 9. Mapeo a C# (Entity Framework)
 
+### Clase Base (BaseEntity)
+
+```csharp
+/// <summary>
+/// Clase base para todas las entidades del sistema.
+/// Incluye Soft Delete, Audit Trail, y Concurrencia Optimista.
+/// </summary>
+public abstract class BaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+
+    // v0.4.4 - Auditoria y Concurrencia
+    public Guid? CreatedByUserId { get; set; }
+    public Guid? LastModifiedByUserId { get; set; }
+    public uint RowVersion { get; set; } // Mapeado a xmin en PostgreSQL
+}
+
+public abstract class TenantEntity : BaseEntity
+{
+    public Guid TenantId { get; set; }
+}
+```
+
 ### Entidad Location
 
 ```csharp
-public class Location
+public class Location : TenantEntity
 {
-    public Guid Id { get; set; }
-    public Guid TenantId { get; set; }
-    public string Code { get; set; } = null!;  // Código corto único (MTY, GDL, MM)
+    public string Code { get; set; } = null!;  // Codigo corto unico (MTY, GDL, MM)
     public string Name { get; set; } = null!;
     public LocationType Type { get; set; }
     public string FullAddress { get; set; } = null!;
+
+    // v0.4.4 - Geolocalizacion
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+
     public bool CanReceive { get; set; }
     public bool CanDispatch { get; set; }
     public bool IsInternal { get; set; }
     public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     // Navigation Properties
     public Tenant Tenant { get; set; } = null!;
@@ -927,6 +956,7 @@ public class Location
     public ICollection<RouteStep> RouteSteps { get; set; } = new List<RouteStep>();
     public ICollection<NetworkLink> OutgoingLinks { get; set; } = new List<NetworkLink>();
     public ICollection<NetworkLink> IncomingLinks { get; set; } = new List<NetworkLink>();
+    public ICollection<WarehouseZone> Zones { get; set; } = new List<WarehouseZone>();
 }
 
 public enum LocationType { RegionalHub, CrossDock, Warehouse, Store, SupplierPlant }
@@ -1018,10 +1048,13 @@ public enum ShipmentPriority { Normal, Urgent, Express }
 ### Entidad ShipmentItem
 
 ```csharp
-public class ShipmentItem
+public class ShipmentItem : BaseEntity
 {
-    public Guid Id { get; set; }
     public Guid ShipmentId { get; set; }
+
+    // v0.4.4 - Enlace opcional a catalogo
+    public Guid? ProductId { get; set; }
+
     public string? Sku { get; set; }
     public string Description { get; set; } = null!;
     public PackagingType PackagingType { get; set; }
@@ -1030,16 +1063,16 @@ public class ShipmentItem
     public decimal WidthCm { get; set; }
     public decimal HeightCm { get; set; }
     public decimal LengthCm { get; set; }
-    public decimal VolumeM3 => (WidthCm * HeightCm * LengthCm) / 1_000_000;
+    public decimal VolumeM3 => (WidthCm * HeightCm * LengthCm) / 1_000_000m;
     public decimal DeclaredValue { get; set; }
     public bool IsFragile { get; set; }
     public bool IsHazardous { get; set; }
     public bool RequiresRefrigeration { get; set; }
     public string? StackingInstructions { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     // Navigation Properties
     public Shipment Shipment { get; set; } = null!;
+    public CatalogItem? Product { get; set; } // v0.4.4
 }
 
 public enum PackagingType { Pallet, Box, Drum, Piece }
@@ -1205,6 +1238,113 @@ public class Tenant
     public ICollection<Driver> Drivers { get; set; } = new List<Driver>();
     public ICollection<Location> Locations { get; set; } = new List<Location>();
     public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
+    public ICollection<CatalogItem> CatalogItems { get; set; } = new List<CatalogItem>(); // v0.4.4
+}
+```
+
+### Entidad CatalogItem (v0.4.4 - Nueva)
+
+```csharp
+/// <summary>
+/// Catalogo maestro de productos/SKUs.
+/// Normaliza datos que se repiten en ShipmentItems.
+/// </summary>
+public class CatalogItem : TenantEntity
+{
+    public string Sku { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public string? Description { get; set; }
+    public string BaseUom { get; set; } = "Pza"; // Unidad de medida: Pza, Kg, Lt, Caja
+
+    // Dimensiones Default
+    public decimal DefaultWeightKg { get; set; }
+    public decimal DefaultWidthCm { get; set; }
+    public decimal DefaultHeightCm { get; set; }
+    public decimal DefaultLengthCm { get; set; }
+
+    // Flags de manejo especial
+    public bool RequiresRefrigeration { get; set; }
+    public bool IsHazardous { get; set; }
+    public bool IsFragile { get; set; }
+    public bool IsActive { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public ICollection<ShipmentItem> ShipmentItems { get; set; } = new List<ShipmentItem>();
+    public ICollection<InventoryStock> InventoryStocks { get; set; } = new List<InventoryStock>();
+}
+```
+
+### Entidad InventoryStock (v0.4.4 - Nueva)
+
+```csharp
+/// <summary>
+/// Inventario fisico cuantificado por zona y lote.
+/// Representa el saldo actual de un producto en una ubicacion.
+/// </summary>
+public class InventoryStock : TenantEntity
+{
+    public Guid ZoneId { get; set; }
+    public Guid ProductId { get; set; }
+
+    public decimal Quantity { get; set; }
+    public decimal QuantityReserved { get; set; }
+    public decimal QuantityAvailable => Quantity - QuantityReserved;
+
+    public string? BatchNumber { get; set; }
+    public DateTime? ExpiryDate { get; set; }
+    public DateTime? LastCountDate { get; set; }
+    public decimal? UnitCost { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public WarehouseZone Zone { get; set; } = null!;
+    public CatalogItem Product { get; set; } = null!;
+}
+```
+
+### Entidad InventoryTransaction (v0.4.4 - Nueva)
+
+```csharp
+/// <summary>
+/// Bitacora de movimientos de inventario (Kardex).
+/// INMUTABLE: Las transacciones no se modifican, solo se agregan.
+/// </summary>
+public class InventoryTransaction : TenantEntity
+{
+    public Guid ProductId { get; set; }
+    public Guid? OriginZoneId { get; set; }
+    public Guid? DestinationZoneId { get; set; }
+
+    public decimal Quantity { get; set; }
+    public InventoryTransactionType TransactionType { get; set; }
+
+    public Guid PerformedByUserId { get; set; }
+    public Guid? ShipmentId { get; set; }
+    public string? BatchNumber { get; set; }
+    public string? Remarks { get; set; }
+    public DateTime Timestamp { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public CatalogItem Product { get; set; } = null!;
+    public WarehouseZone? OriginZone { get; set; }
+    public WarehouseZone? DestinationZone { get; set; }
+    public User PerformedBy { get; set; } = null!;
+    public Shipment? Shipment { get; set; }
+}
+
+public enum InventoryTransactionType
+{
+    Receipt,      // Entrada de mercancia externa
+    PutAway,      // Almacenamiento
+    InternalMove, // Movimiento entre zonas
+    Picking,      // Surtido para envio
+    Packing,      // Empaque
+    Dispatch,     // Salida del almacen
+    Adjustment,   // Ajuste (+/-)
+    Scrap,        // Baja por dano/caducidad
+    Return        // Devolucion
 }
 ```
 
