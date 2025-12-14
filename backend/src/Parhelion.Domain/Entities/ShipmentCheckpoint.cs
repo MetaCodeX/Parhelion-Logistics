@@ -14,7 +14,12 @@ public class ShipmentCheckpoint : BaseEntity
     public CheckpointStatus StatusCode { get; set; }
     public string? Remarks { get; set; }
     public DateTime Timestamp { get; set; }
-    public Guid CreatedByUserId { get; set; }
+    
+    /// <summary>
+    /// Usuario que registró el checkpoint (siempre requerido).
+    /// Sobrescribe el campo nullable de BaseEntity.
+    /// </summary>
+    public new Guid CreatedByUserId { get; set; }
     
     // ========== TRAZABILIDAD DE CARGUEROS ==========
     
@@ -35,6 +40,14 @@ public class ShipmentCheckpoint : BaseEntity
     
     /// <summary>Almacenista que manejó el paquete en este checkpoint</summary>
     public Guid? HandledByWarehouseOperatorId { get; set; }
+    
+    // ========== GEOLOCALIZACIÓN ==========
+    
+    /// <summary>Latitud donde se registró el checkpoint</summary>
+    public decimal? Latitude { get; set; }
+    
+    /// <summary>Longitud donde se registró el checkpoint</summary>
+    public decimal? Longitude { get; set; }
 
     // Navigation Properties
     public Shipment Shipment { get; set; } = null!;

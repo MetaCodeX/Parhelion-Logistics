@@ -1,13 +1,13 @@
 # PARHELION-LOGISTICS | Modelo de Base de Datos
 
-**Versión:** 2.4 (v0.4.3 - Employee Layer)  
+**Version:** 2.5 (v0.4.4 - WMS Enhancement)  
 **Fecha:** Diciembre 2025  
 **Motor:** PostgreSQL + Entity Framework Core (Code First)  
-**Estado:** Diseño Cerrado - Listo para Implementación
+**Estado:** Diseno Cerrado - Listo para Implementacion
 
-> **Nota Técnica:** Esta plataforma unifica WMS (Warehouse Management System) y TMS (Transportation Management System). El módulo de almacén gestiona inventario estático y carga, mientras que el núcleo TMS maneja logística de media milla: gestión de flotas tipificadas, redes Hub & Spoke y trazabilidad de envíos en movimiento.
+> **Nota Tecnica:** Esta plataforma unifica WMS (Warehouse Management System) y TMS (Transportation Management System). El modulo de almacen gestiona inventario estatico y carga, mientras que el nucleo TMS maneja logistica de media milla: gestion de flotas tipificadas, redes Hub & Spoke y trazabilidad de envios en movimiento.
 
-> **v0.4.3:** Agrega Employee Layer (centraliza datos legales), Shift (turnos), WarehouseZone (zonas de bodega), WarehouseOperator (extensión de empleado para almacenistas), y SuperAdmin (IsSuperAdmin en User).
+> **v0.4.4:** Agrega CatalogItem (catalogo maestro de productos), InventoryStock (inventario cuantificado por zona y lote), InventoryTransaction (Kardex de movimientos), campos de auditoria (CreatedByUserId, LastModifiedByUserId), geolocalizacion (Latitude/Longitude), y optimistic locking (RowVersion).
 
 ---
 
@@ -71,6 +71,14 @@ erDiagram
     LOCATION ||--o{ WAREHOUSE_OPERATOR : "asigna operadores"
     WAREHOUSE_ZONE ||--o{ WAREHOUSE_OPERATOR : "asigna a zona"
     WAREHOUSE_OPERATOR ||--o{ SHIPMENT_CHECKPOINT : "maneja paquetes"
+
+    %% ========== INVENTARIO Y CATALOGO (v0.4.4) ==========
+    TENANT ||--o{ CATALOG_ITEM : "tiene productos"
+    CATALOG_ITEM ||--o{ SHIPMENT_ITEM : "referencia"
+    CATALOG_ITEM ||--o{ INVENTORY_STOCK : "existe en"
+    WAREHOUSE_ZONE ||--o{ INVENTORY_STOCK : "contiene"
+    WAREHOUSE_ZONE ||--o{ INVENTORY_TRANSACTION : "origen/destino"
+    USER ||--o{ INVENTORY_TRANSACTION : "ejecuta"
 
     %% ========== ENTIDADES CORE ==========
     TENANT {
@@ -187,6 +195,68 @@ erDiagram
         datetime deleted_at "nullable"
     }
 
+    %% ========== INVENTARIO Y CATALOGO (v0.4.4) ==========
+    CATALOG_ITEM {
+        uuid id PK
+        uuid tenant_id FK
+        string sku UK "SKU unico por tenant"
+        string name
+        string description "nullable"
+        string base_uom "Pza|Kg|Lt|Caja"
+        decimal default_weight_kg
+        decimal default_width_cm
+        decimal default_height_cm
+        decimal default_length_cm
+        boolean requires_refrigeration
+        boolean is_hazardous
+        boolean is_fragile
+        boolean is_active
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
+        uuid created_by_user_id FK "nullable v0.4.4"
+        uuid last_modified_by_user_id FK "nullable v0.4.4"
+    }
+
+    INVENTORY_STOCK {
+        uuid id PK
+        uuid tenant_id FK
+        uuid zone_id FK "WarehouseZone"
+        uuid product_id FK "CatalogItem"
+        decimal quantity
+        decimal quantity_reserved
+        string batch_number "nullable"
+        datetime expiry_date "nullable"
+        datetime last_count_date "nullable"
+        decimal unit_cost "nullable"
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
+        uuid created_by_user_id FK "nullable v0.4.4"
+        uuid last_modified_by_user_id FK "nullable v0.4.4"
+    }
+
+    INVENTORY_TRANSACTION {
+        uuid id PK
+        uuid tenant_id FK
+        uuid product_id FK "CatalogItem"
+        uuid origin_zone_id FK "nullable"
+        uuid destination_zone_id FK "nullable"
+        decimal quantity
+        string transaction_type "Receipt|PutAway|InternalMove|Picking|Packing|Dispatch|Adjustment|Scrap|Return"
+        uuid performed_by_user_id FK
+        uuid shipment_id FK "nullable"
+        string batch_number "nullable"
+        string remarks "nullable"
+        datetime timestamp
+        datetime created_at
+        datetime updated_at "nullable"
+        boolean is_deleted
+        datetime deleted_at "nullable"
+    }
+
     TRUCK {
         uuid id PK
         uuid tenant_id FK
@@ -217,12 +287,14 @@ erDiagram
     LOCATION {
         uuid id PK
         uuid tenant_id FK
-        string code UK "Ej: MTY, GDL, MM - Código corto único"
+        string code UK "Ej: MTY, GDL, MM - Codigo corto unico"
         string name "Ej: CEDIS Norte"
         string type "RegionalHub|CrossDock|Warehouse|Store|SupplierPlant"
         string full_address
-        boolean can_receive "Puede recibir mercancía"
-        boolean can_dispatch "Puede despachar mercancía"
+        decimal latitude "nullable v0.4.4 - Geolocalizacion"
+        decimal longitude "nullable v0.4.4 - Geolocalizacion"
+        boolean can_receive "Puede recibir mercancia"
+        boolean can_dispatch "Puede despachar mercancia"
         boolean is_internal "Propio o externo"
         boolean is_active
         datetime created_at

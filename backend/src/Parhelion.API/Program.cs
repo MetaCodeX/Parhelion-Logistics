@@ -3,8 +3,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Parhelion.Application.Auth;
+using Parhelion.Application.Services;
 using Parhelion.Infrastructure.Auth;
 using Parhelion.Infrastructure.Data;
+using Parhelion.Infrastructure.Data.Interceptors;
+using Parhelion.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,17 +16,26 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ========== INFRASTRUCTURE SERVICES ==========
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+
 // ========== DATABASE ==========
 // Usar connection string de variables de entorno o appsettings
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-builder.Services.AddDbContext<ParhelionDbContext>(options =>
+builder.Services.AddDbContext<ParhelionDbContext>((sp, options) =>
+{
+    var auditInterceptor = sp.GetRequiredService<AuditSaveChangesInterceptor>();
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
         npgsqlOptions.MigrationsAssembly("Parhelion.Infrastructure");
         npgsqlOptions.EnableRetryOnFailure(3);
-    }));
+    })
+    .AddInterceptors(auditInterceptor);
+});
 
 // ========== AUTH SERVICES ==========
 builder.Services.AddScoped<IJwtService, JwtService>();
@@ -106,7 +118,7 @@ app.MapGet("/health", () => new
     status = "healthy",
     service = "Parhelion API",
     timestamp = DateTime.UtcNow,
-    version = "0.4.2",
+    version = "0.4.4",
     database = "PostgreSQL"
 })
 .WithName("HealthCheck")

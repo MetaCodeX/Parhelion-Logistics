@@ -13,6 +13,85 @@ Historial de cambios del proyecto Parhelion Logistics.
 
 ---
 
+## [0.4.4] - 2025-12-14
+
+### Agregado
+
+- **Catalogo Maestro de Productos (`CatalogItem`)**:
+
+  - SKU unico por tenant con indice unico
+  - Dimensiones por defecto (peso, ancho, alto, largo)
+  - Flags: RequiresRefrigeration, IsHazardous, IsFragile
+  - Unidad de medida base (Pza, Kg, Lt, Caja)
+
+- **Inventario Cuantificado (`InventoryStock`)**:
+
+  - Stock por zona de bodega con FK a `WarehouseZone`
+  - Numero de lote (`BatchNumber`) y fecha de caducidad
+  - Cantidad reservada y disponible
+  - Costo unitario para valuacion
+  - Indice unico compuesto: `(ZoneId, ProductId, BatchNumber)`
+  - Indice filtrado para productos proximos a caducar
+
+- **Kardex de Movimientos (`InventoryTransaction`)**:
+
+  - Bitacora de todos los movimientos internos
+  - Tipos: Receipt, PutAway, InternalMove, Picking, Packing, Dispatch, Adjustment, Scrap, Return
+  - FK a zonas origen/destino, usuario ejecutor, envio relacionado
+  - Indices para consultas por producto y fecha
+
+- **Automatizacion de Auditoria (`AuditSaveChangesInterceptor`)**:
+
+  - Llena automaticamente `CreatedByUserId` en inserts
+  - Llena automaticamente `LastModifiedByUserId` en updates
+  - Maneja `DeletedAt` en soft deletes
+  - Servicios: `ICurrentUserService`, `CurrentUserService`
+
+- **Campos de Auditoria en `BaseEntity`**:
+
+  - `CreatedByUserId` (Guid?) - Usuario que creo el registro
+  - `LastModifiedByUserId` (Guid?) - Ultimo usuario que modifico
+  - `RowVersion` (uint) - Token de concurrencia optimista
+
+- **Geolocalizacion**:
+
+  - `Latitude` y `Longitude` (decimal, precision 9,6) en `Location`
+  - `Latitude` y `Longitude` en `ShipmentCheckpoint`
+
+- **FK `ProductId` en `ShipmentItem`**:
+  - Referencia opcional a `CatalogItem`
+  - Campos descriptivos se mantienen para override
+
+### Modificado
+
+- `BaseEntity`: +RowVersion, +CreatedByUserId, +LastModifiedByUserId
+- `ShipmentItem`: +ProductId FK a CatalogItem
+- `WarehouseZone`: +InventoryStocks, +OriginTransactions, +DestinationTransactions
+- `Location`: +Latitude, +Longitude
+- `ShipmentCheckpoint`: +Latitude, +Longitude, CreatedByUserId marcado con `new`
+- `FleetLog`: CreatedByUserId marcado con `new`
+- `ParhelionDbContext`: +CatalogItems, +InventoryStocks, +InventoryTransactions DbSets
+- `Program.cs`: +AuditSaveChangesInterceptor, version 0.4.4
+
+### Configuraciones EF Core
+
+- `CatalogItemConfiguration`: SKU unico por tenant, precision de decimales
+- `InventoryStockConfiguration`: Concurrencia xmin, indices filtrados
+- `InventoryTransactionConfiguration`: Relaciones con zonas, usuario, envio
+
+### Migracion
+
+- `WmsEnhancement044` aplicada a PostgreSQL
+- 3 nuevas tablas: CatalogItems, InventoryStocks, InventoryTransactions
+- Total: 23 tablas en base de datos
+
+### Tests
+
+- 8 tests de integracion pasando
+- Compatibilidad verificada con esquema anterior
+
+---
+
 ## [0.4.3] - 2025-12-13
 
 ### Agregado

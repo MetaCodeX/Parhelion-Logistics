@@ -20,7 +20,12 @@ public class FleetLog : TenantEntity
     public Guid NewTruckId { get; set; }
     public FleetLogReason Reason { get; set; }
     public DateTime Timestamp { get; set; }
-    public Guid CreatedByUserId { get; set; }
+    
+    /// <summary>
+    /// Usuario que registró el cambio (siempre requerido para FleetLog).
+    /// Sobrescribe el campo nullable de BaseEntity.
+    /// </summary>
+    public new Guid CreatedByUserId { get; set; }
 
     // Navigation Properties
     public Tenant Tenant { get; set; } = null!;

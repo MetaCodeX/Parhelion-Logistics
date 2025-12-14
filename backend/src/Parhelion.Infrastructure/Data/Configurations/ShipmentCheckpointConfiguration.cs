@@ -22,6 +22,10 @@ public class ShipmentCheckpointConfiguration : IEntityTypeConfiguration<Shipment
             
         builder.Property(sc => sc.NewCustodian)
             .HasMaxLength(200);
+        
+        // Geolocalización
+        builder.Property(sc => sc.Latitude).HasPrecision(9, 6);
+        builder.Property(sc => sc.Longitude).HasPrecision(9, 6);
 
         // Índices para trazabilidad
         builder.HasIndex(sc => sc.ShipmentId);

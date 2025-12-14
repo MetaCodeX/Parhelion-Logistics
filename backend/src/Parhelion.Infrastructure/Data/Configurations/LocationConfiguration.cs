@@ -21,6 +21,10 @@ public class LocationConfiguration : IEntityTypeConfiguration<Location>
         builder.Property(l => l.FullAddress)
             .IsRequired()
             .HasMaxLength(500);
+        
+        // Geolocalización
+        builder.Property(l => l.Latitude).HasPrecision(9, 6);
+        builder.Property(l => l.Longitude).HasPrecision(9, 6);
 
         // Código único por tenant (estilo aeropuerto: MTY, GDL, MM)
         builder.HasIndex(l => new { l.TenantId, l.Code }).IsUnique();

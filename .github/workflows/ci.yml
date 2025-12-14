@@ -1,7 +1,7 @@
 # ===================================
 # PARHELION CI - Build & Test Pipeline
 # Se ejecuta en cada push/PR a develop y main
-# v0.4.3: Agregado PostgreSQL service para tests de integracion
+# v0.4.4: Agregado verificacion de tablas de inventario (CatalogItems, InventoryStocks, InventoryTransactions)
 # ===================================
 
 name: CI Pipeline
@@ -77,8 +77,8 @@ jobs:
 
       - name: Verify Database Schema
         run: |
-          echo "Verificando que todas las tablas existen en PostgreSQL..."
-          PGPASSWORD=test_password_ci psql -h localhost -U parhelion_test -d parhelion_test_db -c "\dt" | grep -E "(Tenants|Users|Employees|Shifts|Drivers|Trucks|Locations|Shipments)" && echo "Schema validation passed"
+          echo "Verificando que todas las tablas existen en PostgreSQL (23 tablas esperadas)..."
+          PGPASSWORD=test_password_ci psql -h localhost -U parhelion_test -d parhelion_test_db -c "\dt" | grep -E "(Tenants|Users|Employees|Shifts|Drivers|Trucks|Locations|Shipments|CatalogItems|InventoryStocks|InventoryTransactions)" && echo "Schema validation passed (v0.4.4)"
 
   # ===== FRONTEND ADMIN (Angular) =====
   frontend-admin:

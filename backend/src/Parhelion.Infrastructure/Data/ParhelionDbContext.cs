@@ -64,6 +64,12 @@ public class ParhelionDbContext : DbContext
     public DbSet<ShipmentItem> ShipmentItems => Set<ShipmentItem>();
     public DbSet<ShipmentCheckpoint> ShipmentCheckpoints => Set<ShipmentCheckpoint>();
     public DbSet<ShipmentDocument> ShipmentDocuments => Set<ShipmentDocument>();
+    
+    // Inventario y Catálogo (v0.4.4)
+    public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
+    public DbSet<InventoryStock> InventoryStocks => Set<InventoryStock>();
+    public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

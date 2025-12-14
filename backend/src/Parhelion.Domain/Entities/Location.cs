@@ -14,6 +14,12 @@ public class Location : TenantEntity
     public LocationType Type { get; set; }
     public string FullAddress { get; set; } = null!;
     
+    /// <summary>Latitud para geolocalización</summary>
+    public decimal? Latitude { get; set; }
+    
+    /// <summary>Longitud para geolocalización</summary>
+    public decimal? Longitude { get; set; }
+    
     /// <summary>
     /// Flag: Puede recibir mercancía.
     /// </summary>

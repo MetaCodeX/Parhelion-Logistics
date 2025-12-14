@@ -27,4 +27,9 @@ public class WarehouseZone : BaseEntity
     
     public Location Location { get; set; } = null!;
     public ICollection<WarehouseOperator> AssignedOperators { get; set; } = new List<WarehouseOperator>();
+    
+    // Inventario y movimientos
+    public ICollection<InventoryStock> InventoryStocks { get; set; } = new List<InventoryStock>();
+    public ICollection<InventoryTransaction> OriginTransactions { get; set; } = new List<InventoryTransaction>();
+    public ICollection<InventoryTransaction> DestinationTransactions { get; set; } = new List<InventoryTransaction>();
 }

@@ -39,10 +39,16 @@ public class ShipmentItemConfiguration : IEntityTypeConfiguration<ShipmentItem>
         builder.Ignore(si => si.VolumeM3);
         builder.Ignore(si => si.VolumetricWeightKg);
         
-        // Relación
+        // Relación con Shipment
         builder.HasOne(si => si.Shipment)
             .WithMany(s => s.Items)
             .HasForeignKey(si => si.ShipmentId)
             .OnDelete(DeleteBehavior.Cascade);
+        
+        // Relación con CatalogItem (opcional para compatibilidad)
+        builder.HasOne(si => si.Product)
+            .WithMany(p => p.ShipmentItems)
+            .HasForeignKey(si => si.ProductId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

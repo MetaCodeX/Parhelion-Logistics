@@ -6,10 +6,18 @@ namespace Parhelion.Domain.Entities;
 /// <summary>
 /// Partida individual dentro de un envío (SKU, dimensiones, peso).
 /// Incluye cálculo de peso volumétrico para cotizaciones.
+/// ProductId es opcional para compatibilidad con envíos sin catálogo.
 /// </summary>
 public class ShipmentItem : BaseEntity
 {
     public Guid ShipmentId { get; set; }
+    
+    /// <summary>
+    /// FK a CatalogItem (nullable para compatibilidad con envíos sin catálogo).
+    /// Si se especifica, los campos de dimensiones pueden ser override del catálogo.
+    /// </summary>
+    public Guid? ProductId { get; set; }
+    
     public string? Sku { get; set; }
     public string Description { get; set; } = null!;
     public PackagingType PackagingType { get; set; }
@@ -42,4 +50,5 @@ public class ShipmentItem : BaseEntity
 
     // Navigation Properties
     public Shipment Shipment { get; set; } = null!;
+    public CatalogItem? Product { get; set; }
 }
