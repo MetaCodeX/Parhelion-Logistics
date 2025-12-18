@@ -12,7 +12,7 @@
 
 Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona inventarios, flotas tipificadas, redes Hub & Spoke y documentación legal (Carta Porte) en un entorno Multi-tenant.
 
-> **Estado:** Development Preview v0.5.2 - Services Layer Implementation
+> **Estado:** Development Preview v0.5.3 - Services Layer Integration Tests
 
 ---
 
@@ -36,7 +36,7 @@ Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona in
 - [x] **API Skeleton:** 22 endpoints base para todas las entidades
 - [x] **Autenticacion:** JWT con roles SuperAdmin/Admin/Driver/Warehouse
 - [x] **Repository Pattern:** GenericRepository + UnitOfWork + Soft Delete
-- [x] **xUnit Tests:** 28 tests de foundation (paginacion, CRUD)
+- [x] **xUnit Tests:** 72 tests (foundation + services integration)
 - [x] **Services Layer:** 16 interfaces, 15 implementaciones (Core, Shipment, Fleet, Network)
 
 ### Gestion de Flotilla

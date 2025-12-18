@@ -4,6 +4,32 @@ Historial de cambios del proyecto Parhelion Logistics.
 
 ---
 
+## [0.5.3] - 2025-12-18
+
+### Agregado
+
+- **Integration Tests para Services Layer (44 tests nuevos)**:
+
+  - `ServiceTestFixture` - Fixture con UnitOfWork real y datos de prueba
+  - `TestIds` - IDs conocidos para testing consistente
+  - **Core Services Tests**: TenantServiceTests (10), RoleServiceTests (8), EmployeeServiceTests (6), ClientServiceTests (4)
+  - **Shipment Services Tests**: ShipmentServiceTests (3)
+  - **Fleet Services Tests**: TruckServiceTests (8)
+  - **Network Services Tests**: LocationServiceTests (5)
+
+### Modificado
+
+- Total de tests: 28 → 72 (incremento de 44 tests)
+- Estructura de tests reorganizada en Unit/Services/{Layer}
+
+### Notas Tecnicas
+
+- Tests usan InMemory Database para aislamiento
+- Cada test crea instancia fresca de UnitOfWork
+- Cobertura de CRUD, validaciones de duplicados, y filtros
+
+---
+
 ## [0.5.2] - 2025-12-17
 
 ### Agregado
