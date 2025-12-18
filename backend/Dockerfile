@@ -1,10 +1,14 @@
 # ===================================
 # PARHELION API - Dockerfile
 # Multi-stage build para producción
+# Version: 0.5.4
 # ===================================
 
 # --- STAGE 1: Build ---
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+LABEL maintainer="dev@parhelion.com"
+LABEL version="0.5.4"
+LABEL description="Parhelion Logistics API - WMS + TMS"
 WORKDIR /app
 
 # Copiar archivo de solución
