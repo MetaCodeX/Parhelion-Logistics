@@ -23,7 +23,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Version = "v0.5.4",
+        Version = "v0.5.7",
         Title = "Parhelion Logistics API",
         Description = "API para gestión de logística B2B: envíos, flotas, rutas y almacenes (WMS + TMS)",
         Contact = new OpenApiContact
@@ -162,6 +162,11 @@ builder.Services.AddScoped<Parhelion.Application.Interfaces.Services.IInventoryT
 builder.Services.AddScoped<Parhelion.Application.Interfaces.Services.INotificationService, 
     Parhelion.Infrastructure.Services.Notification.NotificationService>();
 
+// ========== PDF GENERATOR SERVICE ==========
+builder.Services.AddScoped<Parhelion.Application.Interfaces.IPdfGeneratorService, 
+    Parhelion.Infrastructure.Services.Documents.PdfGeneratorService>();
+
+
 // ========== VALIDATORS ==========
 builder.Services.AddSingleton<Parhelion.Application.Interfaces.Validators.ICargoCompatibilityValidator, 
     Parhelion.Infrastructure.Validators.CargoCompatibilityValidator>();
@@ -277,6 +282,9 @@ app.UseCors("DevCors");
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ========== STATIC FILES (for uploads) ==========
+app.UseStaticFiles(); // Sirve archivos desde wwwroot y /uploads
+
 // ========== CONTROLLERS ==========
 app.MapControllers();
 
@@ -286,7 +294,7 @@ app.MapGet("/health", () => new
     status = "healthy",
     service = "Parhelion API",
     timestamp = DateTime.UtcNow,
-    version = "0.4.4",
+    version = "0.5.7",
     database = "PostgreSQL"
 })
 .WithName("HealthCheck")

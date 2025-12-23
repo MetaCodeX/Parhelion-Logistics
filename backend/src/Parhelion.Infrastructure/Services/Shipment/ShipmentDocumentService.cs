@@ -75,5 +75,6 @@ public class ShipmentDocumentService : IShipmentDocumentService
     }
 
     private static ShipmentDocumentResponse MapToResponse(ShipmentDocument e) => new(
-        e.Id, e.ShipmentId, e.DocumentType.ToString(), e.FileUrl, e.GeneratedBy, e.GeneratedAt, e.ExpiresAt, e.CreatedAt);
+        e.Id, e.ShipmentId, e.DocumentType.ToString(), e.FileUrl, e.GeneratedBy, e.GeneratedAt, e.ExpiresAt, e.CreatedAt,
+        e.SignatureBase64, e.SignedByName, e.SignedAt);
 }

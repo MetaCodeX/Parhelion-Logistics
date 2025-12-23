@@ -4,8 +4,8 @@ Documentacion tecnica de la estructura API-First del backend Parhelion.
 
 ## Estado Actual
 
-**Version:** 0.5.6
-**Enfoque:** n8n Integration + Secure Webhooks
+**Version:** 0.5.7
+**Enfoque:** Dynamic PDF Generation + Checkpoint Timeline + POD Signatures
 **Arquitectura:** Clean Architecture + Domain-Driven Design
 
 ---
@@ -54,13 +54,28 @@ Gestion de flotilla, choferes y turnos.
 Gestion de envios, items y trazabilidad.
 
 | Endpoint                    | Entidad            | Estado   | Service                   |
-| --------------------------- | ------------------ | -------- | ------------------------- |
+| --------------------------- | ------------------ | -------- | ------------------------- | -------------------------------------- |
 | `/api/shipments`            | Shipment           | Services | ShipmentService           |
 | `/api/shipment-items`       | ShipmentItem       | Services | ShipmentItemService       |
-| `/api/shipment-checkpoints` | ShipmentCheckpoint | Services | ShipmentCheckpointService |
-| `/api/shipment-documents`   | ShipmentDocument   | Services | ShipmentDocumentService   |
-| `/api/catalog-items`        | CatalogItem        | Services | CatalogItemService        |
-| `/api/notifications`        | Notification       | Services | NotificationService       |
+| `/api/shipment-checkpoints` | ShipmentCheckpoint | Services | ShipmentCheckpointService | `timeline/{id}`, `/by-status`, `/last` |
+| `/api/shipment-documents`   | ShipmentDocument   | Services | ShipmentDocumentService   | `/pod/{id}`                            |
+| `/api/documents`            | -                  | Services | PdfGeneratorService       | PDF Generation (v0.5.7)                |
+| `/api/catalog-items`        | CatalogItem        | Services | CatalogItemService        |                                        |
+| `/api/notifications`        | Notification       | Services | NotificationService       |                                        |
+
+### Documents Layer (v0.5.7 NEW)
+
+Generación dinámica de documentos PDF sin almacenamiento.
+
+| Endpoint                                | Documento           | Entidad Input  |
+| --------------------------------------- | ------------------- | -------------- |
+| `GET /api/documents/service-order/{id}` | Orden de Servicio   | Shipment       |
+| `GET /api/documents/waybill/{id}`       | Carta Porte         | Shipment       |
+| `GET /api/documents/manifest/{id}`      | Manifiesto de Carga | RouteBlueprint |
+| `GET /api/documents/trip-sheet/{id}`    | Hoja de Ruta        | Driver         |
+| `GET /api/documents/pod/{id}`           | Proof of Delivery   | Shipment       |
+
+> Los PDFs se generan on-demand con datos de BD. Cliente crea `blob:` URL local.
 
 ### Network Layer
 
@@ -144,24 +159,25 @@ El token se obtiene via `/api/auth/login` con credenciales validas.
 
 ## Tests (xUnit)
 
-| Test Suite               | Tests  | Cobertura                  |
-| ------------------------ | ------ | -------------------------- |
-| `PaginationDtoTests`     | 11     | PagedRequest, PagedResult  |
-| `GenericRepositoryTests` | 9      | CRUD, Soft Delete, Queries |
-| **Total**                | **28** | Foundation layer           |
+| Test Suite               | Tests   | Cobertura                  |
+| ------------------------ | ------- | -------------------------- |
+| `PaginationDtoTests`     | 11      | PagedRequest, PagedResult  |
+| `GenericRepositoryTests` | 9       | CRUD, Soft Delete, Queries |
+| `ServiceTests`           | 72      | All Services               |
+| `BusinessRulesTests`     | 30      | Compatibility, FleetLog    |
+| **Total**                | **122** | Full backend coverage      |
 
 ---
 
-## Pendientes (v0.5.2+)
+## Pendientes (v0.5.8+)
 
 Los siguientes items quedan pendientes para futuras versiones:
 
-- [ ] Servicios CRUD por entidad (TenantService, ShipmentService, etc.)
-- [ ] Validaciones de DTOs con FluentValidation
-- [ ] Calculos de peso volumetrico y costos
-- [ ] Reglas de negocio (compatibilidad de carga, cadena de frio)
-- [ ] Generacion de documentos legales (Carta Porte, POD)
-- [ ] Tests de logica de negocio (Fases 3-8)
+- [ ] QR Handshake (Transferencia de custodia digital via QR)
+- [ ] Route Assignment (Asignación de rutas a shipments)
+- [ ] Dashboard (KPIs operativos, métricas por status)
+- [ ] Recuperación de contraseña
+- [ ] Cálculo de ETA dinámico
 
 ---
 
@@ -171,4 +187,4 @@ La gestion de endpoints durante desarrollo utiliza herramientas privadas que no 
 
 ---
 
-**Ultima actualizacion:** 2025-12-16
+**Ultima actualizacion:** 2025-12-23

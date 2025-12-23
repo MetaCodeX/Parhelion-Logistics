@@ -73,6 +73,23 @@ services:
       timeout: 10s
       retries: 3
 
+  # ===== FRONTEND INICIO (Angular Landing) =====
+  inicio:
+    build:
+      context: ./frontend-inicio
+      dockerfile: Dockerfile
+    container_name: parhelion-inicio
+    restart: unless-stopped
+    ports:
+      - "${INICIO_PORT:-4000}:80"
+    networks:
+      - parhelion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # ===== FRONTEND OPERACIONES (React PWA) =====
   operaciones:
     build:

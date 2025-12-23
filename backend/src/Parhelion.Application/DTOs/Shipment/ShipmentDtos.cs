@@ -186,5 +186,62 @@ public record ShipmentDocumentResponse(
     string GeneratedBy,
     DateTime GeneratedAt,
     DateTime? ExpiresAt,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    // POD fields
+    string? SignatureBase64,
+    string? SignedByName,
+    DateTime? SignedAt
+);
+
+// ========== CHECKPOINT TIMELINE DTOs ==========
+
+/// <summary>
+/// Item simplificado para visualización de timeline tipo Metro.
+/// </summary>
+public record CheckpointTimelineItem(
+    Guid Id,
+    string StatusCode,
+    string StatusLabel,
+    string? LocationName,
+    string? LocationCode,
+    DateTime Timestamp,
+    string? HandlerName,
+    string? Remarks,
+    bool IsCurrentStep
+);
+
+// ========== POD (PROOF OF DELIVERY) DTOs ==========
+
+/// <summary>
+/// Request para capturar firma digital de entrega.
+/// </summary>
+public record CapturePodRequest(
+    string SignatureBase64,
+    string SignedByName,
+    decimal? Latitude,
+    decimal? Longitude
+);
+
+/// <summary>
+/// Response después de capturar POD.
+/// </summary>
+public record PodCaptureResponse(
+    Guid DocumentId,
+    Guid ShipmentId,
+    string TrackingNumber,
+    DateTime SignedAt,
+    string SignedByName,
+    string FileUrl
+);
+
+// ========== FILE UPLOAD DTOs ==========
+
+/// <summary>
+/// Response después de upload de archivo.
+/// </summary>
+public record FileUploadResponse(
+    string FileUrl,
+    string FileName,
+    string ContentType,
+    long SizeBytes
 );

@@ -1,13 +1,13 @@
 # ===================================
 # PARHELION API - Dockerfile
 # Multi-stage build para producción
-# Version: 0.5.4
+# Version: 0.5.7
 # ===================================
 
 # --- STAGE 1: Build ---
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 LABEL maintainer="dev@parhelion.com"
-LABEL version="0.5.4"
+LABEL version="0.5.7"
 LABEL description="Parhelion Logistics API - WMS + TMS"
 WORKDIR /app
 
@@ -40,12 +40,16 @@ WORKDIR /app
 # Instalar curl para healthcheck (como root)
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
-# Crear usuario no-root para seguridad
-RUN adduser --disabled-password --gecos '' appuser
-USER appuser
+# Crear usuario no-root y directorio de uploads con permisos correctos
+RUN adduser --disabled-password --gecos '' appuser && \
+    mkdir -p /app/uploads && \
+    chown -R appuser:appuser /app/uploads
 
 # Copiar artefactos del build
 COPY --from=build /publish .
+
+# Cambiar a usuario no-root
+USER appuser
 
 # Puerto por defecto
 EXPOSE 5000
@@ -56,3 +60,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 # Comando de inicio
 ENTRYPOINT ["dotnet", "Parhelion.API.dll"]
+

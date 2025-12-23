@@ -1,109 +1,128 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Parhelion.Application.DTOs.Common;
 using Parhelion.Application.DTOs.Shipment;
-using Parhelion.Domain.Entities;
-using Parhelion.Domain.Enums;
-using Parhelion.Infrastructure.Data;
+using Parhelion.Application.Interfaces.Services;
 
 namespace Parhelion.API.Controllers;
 
 /// <summary>
 /// Controlador para checkpoints de envío (trazabilidad).
-/// Los checkpoints son inmutables.
+/// Los checkpoints son inmutables: solo se pueden crear, no modificar ni eliminar.
 /// </summary>
 [ApiController]
 [Route("api/shipment-checkpoints")]
 [Authorize]
+[Produces("application/json")]
+[Consumes("application/json")]
 public class ShipmentCheckpointsController : ControllerBase
 {
-    private readonly ParhelionDbContext _context;
+    private readonly IShipmentCheckpointService _checkpointService;
 
-    public ShipmentCheckpointsController(ParhelionDbContext context)
+    public ShipmentCheckpointsController(IShipmentCheckpointService checkpointService)
     {
-        _context = context;
+        _checkpointService = checkpointService;
     }
 
+    /// <summary>
+    /// Obtiene todos los checkpoints con paginación.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ShipmentCheckpointResponse>>> GetAll()
+    public async Task<ActionResult<PagedResult<ShipmentCheckpointResponse>>> GetAll(
+        [FromQuery] PagedRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var items = await GetCheckpointWithIncludes()
-            .Where(x => !x.IsDeleted)
-            .OrderByDescending(x => x.Timestamp)
-            .Take(100)
-            .Select(x => MapToResponse(x))
-            .ToListAsync();
-        return Ok(items);
+        var result = await _checkpointService.GetAllAsync(request, cancellationToken);
+        return Ok(result);
     }
 
+    /// <summary>
+    /// Obtiene un checkpoint por ID.
+    /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<ShipmentCheckpointResponse>> GetById(Guid id)
+    public async Task<ActionResult<ShipmentCheckpointResponse>> GetById(Guid id, CancellationToken cancellationToken = default)
     {
-        var item = await GetCheckpointWithIncludes().FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
-        if (item == null) return NotFound(new { error = "Checkpoint no encontrado" });
-        return Ok(MapToResponse(item));
+        var result = await _checkpointService.GetByIdAsync(id, cancellationToken);
+        if (result == null) return NotFound(new { error = "Checkpoint no encontrado" });
+        return Ok(result);
     }
 
+    /// <summary>
+    /// Obtiene todos los checkpoints de un envío (timeline completo).
+    /// </summary>
     [HttpGet("by-shipment/{shipmentId:guid}")]
-    public async Task<ActionResult<IEnumerable<ShipmentCheckpointResponse>>> ByShipment(Guid shipmentId)
+    public async Task<ActionResult<IEnumerable<ShipmentCheckpointResponse>>> ByShipment(
+        Guid shipmentId,
+        CancellationToken cancellationToken = default)
     {
-        var items = await GetCheckpointWithIncludes()
-            .Where(x => !x.IsDeleted && x.ShipmentId == shipmentId)
-            .OrderByDescending(x => x.Timestamp)
-            .Select(x => MapToResponse(x))
-            .ToListAsync();
-        return Ok(items);
+        var result = await _checkpointService.GetByShipmentAsync(shipmentId, cancellationToken);
+        return Ok(result);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<ShipmentCheckpointResponse>> Create([FromBody] CreateShipmentCheckpointRequest request)
+    /// <summary>
+    /// Obtiene el timeline visual de un envío (formato Metro).
+    /// </summary>
+    [HttpGet("timeline/{shipmentId:guid}")]
+    public async Task<ActionResult<IEnumerable<CheckpointTimelineItem>>> GetTimeline(
+        Guid shipmentId,
+        CancellationToken cancellationToken = default)
     {
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+        var result = await _checkpointService.GetTimelineAsync(shipmentId, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Obtiene checkpoints filtrados por código de estatus.
+    /// </summary>
+    [HttpGet("by-status/{shipmentId:guid}/{statusCode}")]
+    public async Task<ActionResult<IEnumerable<ShipmentCheckpointResponse>>> ByStatus(
+        Guid shipmentId,
+        string statusCode,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _checkpointService.GetByStatusCodeAsync(shipmentId, statusCode, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Obtiene el último checkpoint de un envío.
+    /// </summary>
+    [HttpGet("last/{shipmentId:guid}")]
+    public async Task<ActionResult<ShipmentCheckpointResponse>> GetLast(
+        Guid shipmentId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _checkpointService.GetLastCheckpointAsync(shipmentId, cancellationToken);
+        if (result == null) return NotFound(new { error = "No hay checkpoints para este envío" });
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Crea un nuevo checkpoint de trazabilidad.
+    /// Los checkpoints son inmutables: una vez creados, no se pueden modificar.
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<ShipmentCheckpointResponse>> Create(
+        [FromBody] CreateShipmentCheckpointRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = GetUserId();
+        if (userId == null)
             return Unauthorized(new { error = "No se pudo determinar el usuario" });
 
-        var item = new ShipmentCheckpoint
-        {
-            Id = Guid.NewGuid(),
-            ShipmentId = request.ShipmentId,
-            LocationId = request.LocationId,
-            StatusCode = Enum.TryParse<CheckpointStatus>(request.StatusCode, out var s) ? s : CheckpointStatus.Loaded,
-            Remarks = request.Remarks,
-            Timestamp = DateTime.UtcNow,
-            CreatedByUserId = userId,
-            HandledByDriverId = request.HandledByDriverId,
-            LoadedOntoTruckId = request.LoadedOntoTruckId,
-            ActionType = request.ActionType,
-            PreviousCustodian = request.PreviousCustodian,
-            NewCustodian = request.NewCustodian,
-            HandledByWarehouseOperatorId = request.HandledByWarehouseOperatorId,
-            Latitude = request.Latitude,
-            Longitude = request.Longitude,
-            CreatedAt = DateTime.UtcNow
-        };
+        var result = await _checkpointService.CreateAsync(request, userId.Value, cancellationToken);
+        
+        if (!result.Success)
+            return BadRequest(new { error = result.Message });
 
-        _context.ShipmentCheckpoints.Add(item);
-        await _context.SaveChangesAsync();
-
-        item = await GetCheckpointWithIncludes().FirstAsync(x => x.Id == item.Id);
-        return CreatedAtAction(nameof(GetById), new { id = item.Id }, MapToResponse(item));
+        return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
     }
 
     // No PUT/DELETE - checkpoints are immutable
 
-    private IQueryable<ShipmentCheckpoint> GetCheckpointWithIncludes() => _context.ShipmentCheckpoints
-        .Include(x => x.Location)
-        .Include(x => x.CreatedBy)
-        .Include(x => x.HandledByDriver).ThenInclude(d => d!.Employee).ThenInclude(e => e.User)
-        .Include(x => x.LoadedOntoTruck);
-
-    private static ShipmentCheckpointResponse MapToResponse(ShipmentCheckpoint x) => new(
-        x.Id, x.ShipmentId, x.LocationId, x.Location?.Name,
-        x.StatusCode.ToString(), x.Remarks, x.Timestamp,
-        x.CreatedByUserId, x.CreatedBy?.FullName ?? "",
-        x.HandledByDriverId, x.HandledByDriver?.Employee?.User?.FullName,
-        x.LoadedOntoTruckId, x.LoadedOntoTruck?.Plate,
-        x.ActionType, x.PreviousCustodian, x.NewCustodian,
-        x.Latitude, x.Longitude, x.CreatedAt
-    );
+    private Guid? GetUserId()
+    {
+        var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        return claim != null && Guid.TryParse(claim.Value, out var id) ? id : null;
+    }
 }

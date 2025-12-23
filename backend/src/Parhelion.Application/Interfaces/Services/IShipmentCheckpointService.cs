@@ -68,4 +68,15 @@ public interface IShipmentCheckpointService
     Task<ShipmentCheckpointResponse?> GetLastCheckpointAsync(
         Guid shipmentId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Obtiene el timeline de checkpoints para visualización tipo Metro.
+    /// </summary>
+    /// <param name="shipmentId">ID del envío.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>Lista de items del timeline ordenados cronológicamente.</returns>
+    Task<IEnumerable<CheckpointTimelineItem>> GetTimelineAsync(
+        Guid shipmentId,
+        CancellationToken cancellationToken = default);
 }
+

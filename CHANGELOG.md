@@ -4,6 +4,80 @@ Historial de cambios del proyecto Parhelion Logistics.
 
 ---
 
+## [0.5.7] - 2025-12-23
+
+### Agregado
+
+- **Frontend Landing Page (frontend-inicio)**:
+
+  - Nuevo proyecto Angular 18 con diseño Neo-Brutalism
+  - 10 componentes animados: Marquee, Buttons, Badges, Cards, Tabs, Progress Bars, Carousel, Accordion, Alert, Grid Animation
+  - Carousel con changelog completo (8 slides: v0.1.0 → v0.5.7)
+  - Tabs con características: Core, Flotilla, Documentos, Automatización
+  - Diseño responsive mobile-first (5 breakpoints: 320px, 480px, 768px, 1024px, 1280px+)
+  - Enlaces a Panel Admin, Operaciones y Driver App
+  - Accesibilidad: Touch device enhancements, Reduced motion support
+
+- **Infraestructura Cloudflare Tunnel**:
+
+  - Subdominios públicos configurados:
+    - `parhelion.macrostasis.lat` → Landing Page
+    - `phadmin.macrostasis.lat` → Panel Admin
+    - `phops.macrostasis.lat` → Operaciones (PWA)
+    - `phdriver.macrostasis.lat` → Driver App (PWA)
+    - `phapi.macrostasis.lat` → Backend API
+  - Docker service `inicio` agregado a `docker-compose.yml`
+  - Nginx + Multi-stage build para producción
+
+- **Generación Dinámica de PDFs** (Sin almacenamiento de archivos):
+
+  - `IPdfGeneratorService` - Interface para generación on-demand de documentos
+  - `PdfGeneratorService` - Implementación con plantillas HTML para 5 tipos de documentos
+  - `DocumentsController` - Nuevo controller con endpoints protegidos por JWT:
+    - `GET /api/documents/service-order/{shipmentId}` - Orden de Servicio
+    - `GET /api/documents/waybill/{shipmentId}` - Carta Porte
+    - `GET /api/documents/manifest/{routeId}` - Manifiesto de Carga
+    - `GET /api/documents/trip-sheet/{driverId}` - Hoja de Ruta
+    - `GET /api/documents/pod/{shipmentId}` - Prueba de Entrega (POD)
+  - Los PDFs se generan en memoria usando datos de BD + plantilla
+  - Cliente crea `blob:` URL local (estilo WhatsApp Web)
+
+- **Proof of Delivery (POD) con Firma Digital**:
+
+  - Nuevos campos en `ShipmentDocument`: `SignatureBase64`, `SignedByName`, `SignedAt`, `SignatureLatitude`, `SignatureLongitude`
+  - Endpoint `POST /api/shipment-documents/pod/{shipmentId}` para captura de firma
+  - Campos de metadata: `OriginalFileName`, `ContentType`, `FileSizeBytes`
+  - Migración `AddPodSignatureFields` aplicada
+
+- **Timeline de Checkpoints (Visualización Metro)**:
+
+  - `CheckpointTimelineItem` DTO con StatusLabel en español
+  - `IShipmentCheckpointService.GetTimelineAsync()` con datos simplificados
+  - Endpoint `GET /api/shipment-checkpoints/timeline/{shipmentId}`
+  - Labels: Cargado, QR escaneado, Llegó a Hub, En camino, Entregado, etc.
+
+### Modificado
+
+- **Refactorización de Controllers a Clean Architecture**:
+
+  - `ShipmentCheckpointsController` - Ahora usa `IShipmentCheckpointService` (antes: DbContext directo)
+  - `ShipmentDocumentsController` - Simplificado, delegación a servicios
+  - Agregados endpoints de filtrado: `/by-status`, `/last`, `/timeline`
+
+- `ShipmentCheckpointService` - Inyección de `IWebhookPublisher` y `ILogger`
+- `ShipmentCheckpointService.CreateAsync` - Publica webhook `checkpoint.created` tras guardar
+- `Program.cs` - Registro de `IPdfGeneratorService`, versión `0.5.7`
+- `Dockerfile` - Actualizado a version 0.5.7
+- `docker-compose.yml` - Agregado servicio `inicio` en puerto 4000
+
+### Eliminado
+
+- `LocalFileStorageService` - Ya no se almacenan archivos permanentemente
+- `IFileStorageService` - Reemplazado por generación dinámica
+- Test scripts temporales (`test_e2e_full.sh`, `test_v057.sh`)
+
+---
+
 ## [0.5.6] - 2025-12-22
 
 ### Agregado

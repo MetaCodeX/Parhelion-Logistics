@@ -101,7 +101,7 @@ public class CallbackTokenService : ICallbackTokenService
                 validatedToken.ValidTo
             );
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return null;
         }

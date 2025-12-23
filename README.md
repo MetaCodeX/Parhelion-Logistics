@@ -12,7 +12,7 @@
 
 Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona inventarios, flotas tipificadas, redes Hub & Spoke y documentación legal (Carta Porte) en un entorno Multi-tenant con **agentes de IA automatizados**.
 
-> **Estado:** Development Preview v0.5.6 - n8n Integration + Webhooks + Notifications
+> **Estado:** Development Preview v0.5.7 - Dynamic PDF Generation + Checkpoint Timeline + POD Signatures
 
 ---
 
@@ -67,22 +67,38 @@ Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona in
 
 - [x] **Manifiesto de Carga:** Items con peso volumetrico y valor declarado
 - [x] **Restricciones de Compatibilidad:** Cadena de frio, HAZMAT, Alto valor (validador automatico)
-- [ ] **Checkpoints:** Bitacora de eventos (Loaded, QrScanned, ArrivedHub, Delivered)
+- [x] **Checkpoints:** Bitacora de eventos (Loaded, QrScanned, ArrivedHub, Delivered)
+- [x] **Timeline Metro:** Endpoint `/api/shipment-checkpoints/timeline/{id}` con labels en español
 - [ ] **QR Handshake:** Transferencia de custodia digital mediante escaneo
 
-### Documentacion B2B
+### Documentacion B2B (Generación Dinámica)
 
-- [ ] **Orden de Servicio:** Peticion inicial del cliente
-- [ ] **Carta Porte (Waybill):** Documento legal SAT para transporte
-- [ ] **Manifiesto de Carga:** Checklist de estiba para almacenista
-- [ ] **Hoja de Ruta:** Itinerario con ventanas de entrega
-- [ ] **POD (Proof of Delivery):** Firma digital del receptor
+- [x] **Orden de Servicio:** `GET /api/documents/service-order/{id}`
+- [x] **Carta Porte (Waybill):** `GET /api/documents/waybill/{id}`
+- [x] **Manifiesto de Carga:** `GET /api/documents/manifest/{id}`
+- [x] **Hoja de Ruta:** `GET /api/documents/trip-sheet/{id}`
+- [x] **POD (Proof of Delivery):** `GET /api/documents/pod/{id}` con firma digital
+
+> Los PDFs se generan on-demand con datos de BD. Cliente crea `blob:` URL local (sin almacenamiento).
 
 ### Operacion
 
 - [x] **Seguridad:** Autenticacion JWT con roles (Admin/Chofer/Almacenista)
 - [ ] **Dashboard:** KPIs operativos en tiempo real
 - [ ] **Modo Demo:** Acceso para reclutadores sin registro previo
+
+---
+
+## Demo (Development Preview)
+
+| Aplicación       | URL Pública                                                    | Descripción                                 |
+| :--------------- | :------------------------------------------------------------- | :------------------------------------------ |
+| **Landing Page** | [parhelion.macrostasis.lat](https://parhelion.macrostasis.lat) | Página principal con changelog y navegación |
+| **Panel Admin**  | [phadmin.macrostasis.lat](https://phadmin.macrostasis.lat)     | Gestión administrativa (Angular)            |
+| **Operaciones**  | [phops.macrostasis.lat](https://phops.macrostasis.lat)         | App para almacenistas (React PWA)           |
+| **Driver App**   | [phdriver.macrostasis.lat](https://phdriver.macrostasis.lat)   | App para choferes (React PWA)               |
+
+> Infraestructura: Cloudflare Tunnel (Zero Trust) + Docker Compose + Digital Ocean
 
 ---
 
@@ -256,7 +272,9 @@ src/
 | :----------------------------------------------- | :-------------------------------------------- |
 | [Requerimientos (MVP)](./requirments.md)         | Especificacion funcional completa del sistema |
 | [Esquema de Base de Datos](./database-schema.md) | Diagrama ER, entidades y reglas de negocio    |
-| [Arquitectura de API](./api-architecture.md)     | Estructura de capas y endpoints               |
+| [Arquitectura de API](./api-architecture.md)     | Estructura de capas y endpoints (v0.5.7)      |
+| [Guía de Webhooks](./service-webhooks.md)        | Integración n8n, eventos y notificaciones     |
+| [CHANGELOG](./CHANGELOG.md)                      | Historial detallado de todas las versiones    |
 
 ---
 
@@ -289,29 +307,28 @@ src/
 
 ### Completado
 
-| Version    | Fecha       | Descripcion                                                 |
-| ---------- | ----------- | ----------------------------------------------------------- |
-| v0.1.0     | 2025-12     | Estructura inicial, documentación de requerimientos         |
-| v0.2.0     | 2025-12     | Domain Layer: Entidades base y enumeraciones                |
-| v0.3.0     | 2025-12     | Infrastructure Layer: EF Core, PostgreSQL, Migrations       |
-| v0.4.0     | 2025-12     | API Layer: Controllers base, JWT Authentication             |
-| v0.5.0     | 2025-12     | Services Layer: Repository Pattern, UnitOfWork              |
-| v0.5.1     | 2025-12     | Foundation Tests: DTOs, Repository, UnitOfWork              |
-| v0.5.2     | 2025-12     | Services Implementation: 16 interfaces, 15 implementaciones |
-| v0.5.3     | 2025-12     | Integration Tests: 72 tests para Services                   |
-| v0.5.4     | 2025-12     | Swagger/OpenAPI, Business Logic Workflow                    |
-| v0.5.5     | 2025-12     | WMS/TMS Services, Business Rules, 122 tests                 |
-| **v0.5.6** | **2025-12** | **n8n Integration, Webhooks, Notifications, ServiceApiKey** |
+| Version    | Fecha       | Descripcion                                                     |
+| ---------- | ----------- | --------------------------------------------------------------- |
+| v0.1.0     | 2025-12     | Estructura inicial, documentación de requerimientos             |
+| v0.2.0     | 2025-12     | Domain Layer: Entidades base y enumeraciones                    |
+| v0.3.0     | 2025-12     | Infrastructure Layer: EF Core, PostgreSQL, Migrations           |
+| v0.4.0     | 2025-12     | API Layer: Controllers base, JWT Authentication                 |
+| v0.5.0     | 2025-12     | Services Layer: Repository Pattern, UnitOfWork                  |
+| v0.5.1     | 2025-12     | Foundation Tests: DTOs, Repository, UnitOfWork                  |
+| v0.5.2     | 2025-12     | Services Implementation: 16 interfaces, 15 implementaciones     |
+| v0.5.3     | 2025-12     | Integration Tests: 72 tests para Services                       |
+| v0.5.4     | 2025-12     | Swagger/OpenAPI, Business Logic Workflow                        |
+| v0.5.5     | 2025-12     | WMS/TMS Services, Business Rules, 122 tests                     |
+| v0.5.6     | 2025-12     | n8n Integration, Webhooks, Notifications, ServiceApiKey         |
+| **v0.5.7** | **2025-12** | **Dynamic PDF Generation, Checkpoint Timeline, POD Signatures** |
 
-### Próximas Versiones
+### Próximas Versiones (Pre-0.6.0)
 
-| Version    | Objetivo              | Características                                |
-| ---------- | --------------------- | ---------------------------------------------- |
-| v0.5.7     | Trazabilidad          | Endpoints de Checkpoints, Upload de documentos |
-| v0.5.8     | QR Handshake          | Transferencia de custodia digital              |
-| v0.5.9     | Rutas                 | Asignación de rutas, avance por pasos          |
-| v0.6.0     | Dashboard             | KPIs operativos, métricas por status           |
-| **v0.7.0** | **Perfeccionamiento** | **Bug fixes, E2E testing, optimización**       |
+| Version    | Objetivo         | Características                                    |
+| ---------- | ---------------- | -------------------------------------------------- |
+| v0.5.8     | QR Handshake     | Transferencia de custodia digital via QR           |
+| v0.5.9     | Route Assignment | Asignación de rutas a shipments, avance por pasos  |
+| **v0.6.0** | **Dashboard**    | **KPIs operativos, métricas por status, Frontend** |
 
 ---
 
