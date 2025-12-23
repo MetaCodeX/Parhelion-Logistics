@@ -6,12 +6,13 @@
 ![Angular](https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona inventarios, flotas tipificadas, redes Hub & Spoke y documentación legal (Carta Porte) en un entorno Multi-tenant.
+Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona inventarios, flotas tipificadas, redes Hub & Spoke y documentación legal (Carta Porte) en un entorno Multi-tenant con **agentes de IA automatizados**.
 
-> **Estado del Proyecto:** Diseño Finalizado (v2.3) - Listo para Implementación
+> **Estado:** Development Preview v0.5.7 - Dynamic PDF Generation + Checkpoint Timeline + POD Signatures
 
 ---
 
@@ -19,7 +20,7 @@ Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona in
 
 **Parhelion-Logistics** es una plataforma SaaS multi-tenant de nivel Enterprise que unifica las capacidades de un WMS (Warehouse Management System) y un TMS (Transportation Management System). Diseñada para empresas de transporte B2B que requieren gestión integral: inventarios estáticos en almacén, flotas tipificadas (refrigerado, HAZMAT, blindado), redes de distribución Hub & Spoke, trazabilidad por checkpoints y documentación legal mexicana (Carta Porte, POD).
 
-**Objetivo Técnico:** Implementación de **Clean Architecture** y **Domain-Driven Design (DDD)** en un entorno de producción utilizando .NET 8, Angular, React, Docker y PostgreSQL.
+**Objetivo Técnico:** Implementación de **Clean Architecture** y **Domain-Driven Design (DDD)** en un entorno de producción utilizando .NET 8, Angular, React, Docker, PostgreSQL y **n8n** para automatización inteligente.
 
 ---
 
@@ -27,57 +28,118 @@ Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona in
 
 ### Core
 
-- [x] Documentación de requerimientos y esquema de base de datos
-- [ ] **Arquitectura Base:** Configuración de Clean Architecture y estructura de proyecto
-- [ ] **Multi-tenancy:** Aislamiento de datos por cliente/empresa
+- [x] Documentacion de requerimientos y esquema de base de datos
+- [x] **[NUEVO]** [Guía de Webhooks y Automatización](./service-webhooks.md)
+- [x] **Arquitectura Base:** Configuracion de Clean Architecture y estructura de proyecto
+- [x] **Multi-tenancy:** Query Filters globales por TenantId
+- [x] **Domain Layer:** 25 entidades + 17 enumeraciones
+- [x] **Infrastructure Layer:** EF Core + PostgreSQL + Migrations
+- [x] **API Skeleton:** 22 endpoints base para todas las entidades
+- [x] **Autenticacion:** JWT con roles SuperAdmin/Admin/Driver/Warehouse
+- [x] **Repository Pattern:** GenericRepository + UnitOfWork + Soft Delete
+- [x] **xUnit Tests:** 122 tests (foundation + services + business rules)
+- [x] **Services Layer:** 22 servicios (Core, Shipment, Fleet, Network, Warehouse)
 
-### Gestión de Flotilla
+### Gestion de Flotilla
 
-- [ ] **Camiones Tipificados:** DryBox, Refrigerado, HAZMAT, Plataforma, Blindado
-- [ ] **Choferes:** Asignación fija (default_truck) y dinámica (current_truck)
-- [ ] **Bitácora de Flotilla:** Historial de cambios de vehículo (FleetLog)
+- [x] **Camiones Tipificados:** DryBox, Refrigerado, HAZMAT, Plataforma, Blindado
+- [x] **Choferes:** Asignacion fija (default_truck) y dinamica (current_truck)
+- [x] **Bitacora de Flotilla:** Historial de cambios de vehiculo (FleetLog automático)
+- [x] **Telemetría GPS:** Campos LastLatitude/LastLongitude en Trucks
+- [x] **Búsqueda Geoespacial:** Endpoint `/api/drivers/nearby` (Haversine)
 
-### Red Logística (Hub & Spoke)
+### Automatización e Inteligencia (n8n)
 
-- [ ] **Nodos de Red:** RegionalHub, CrossDock, Warehouse, Store, SupplierPlant
-- [ ] **Códigos Aeroportuarios:** Identificadores únicos por ubicación (MTY, GDL, MM)
-- [ ] **Enlaces de Red:** Conexiones FirstMile, LineHaul, LastMile
-- [ ] **Rutas Predefinidas:** RouteBlueprint con paradas y tiempos de tránsito
+- [x] **Webhooks (Backend → n8n):** 5 tipos de eventos (ShipmentException, BookingRequest, HandshakeAttempt, StatusChanged, CheckpointCreated)
+- [x] **Notificaciones (n8n → Backend):** Push notifications persistidas para apps móviles
+- [x] **ServiceApiKey Multi-Tenant:** Autenticación de agentes IA por tenant con SHA256
+- [x] **Generación Automática:** API Key creada junto con cada nuevo Tenant
+- [x] **Agente Crisis Management:** Búsqueda de chofer cercano ante excepciones
 
-### Envíos y Trazabilidad
+### Red Logistica (Hub and Spoke)
 
-- [ ] **Manifiesto de Carga:** Items con peso volumétrico y valor declarado
-- [ ] **Restricciones de Compatibilidad:** Cadena de frío, HAZMAT, Alto valor
-- [ ] **Checkpoints:** Bitácora de eventos (Loaded, QrScanned, ArrivedHub, Delivered)
+- [x] **Nodos de Red:** RegionalHub, CrossDock, Warehouse, Store, SupplierPlant
+- [x] **Codigos Aeroportuarios:** Identificadores unicos por ubicacion (MTY, GDL, MM)
+- [x] **Enlaces de Red:** Conexiones FirstMile, LineHaul, LastMile
+- [x] **Rutas Predefinidas:** RouteBlueprint con paradas y tiempos de transito
+
+### Envios y Trazabilidad
+
+- [x] **Manifiesto de Carga:** Items con peso volumetrico y valor declarado
+- [x] **Restricciones de Compatibilidad:** Cadena de frio, HAZMAT, Alto valor (validador automatico)
+- [x] **Checkpoints:** Bitacora de eventos (Loaded, QrScanned, ArrivedHub, Delivered)
+- [x] **Timeline Metro:** Endpoint `/api/shipment-checkpoints/timeline/{id}` con labels en español
 - [ ] **QR Handshake:** Transferencia de custodia digital mediante escaneo
 
-### Documentación B2B
+### Documentacion B2B (Generación Dinámica)
 
-- [ ] **Orden de Servicio:** Petición inicial del cliente
-- [ ] **Carta Porte (Waybill):** Documento legal SAT para transporte
-- [ ] **Manifiesto de Carga:** Checklist de estiba para almacenista
-- [ ] **Hoja de Ruta:** Itinerario con ventanas de entrega
-- [ ] **POD (Proof of Delivery):** Firma digital del receptor
+- [x] **Orden de Servicio:** `GET /api/documents/service-order/{id}`
+- [x] **Carta Porte (Waybill):** `GET /api/documents/waybill/{id}`
+- [x] **Manifiesto de Carga:** `GET /api/documents/manifest/{id}`
+- [x] **Hoja de Ruta:** `GET /api/documents/trip-sheet/{id}`
+- [x] **POD (Proof of Delivery):** `GET /api/documents/pod/{id}` con firma digital
 
-### Operación
+> Los PDFs se generan on-demand con datos de BD. Cliente crea `blob:` URL local (sin almacenamiento).
 
-- [ ] **Seguridad:** Autenticación JWT con roles (Admin/Chofer/Almacenista)
+### Operacion
+
+- [x] **Seguridad:** Autenticacion JWT con roles (Admin/Chofer/Almacenista)
 - [ ] **Dashboard:** KPIs operativos en tiempo real
 - [ ] **Modo Demo:** Acceso para reclutadores sin registro previo
 
 ---
 
+## Demo (Development Preview)
+
+| Aplicación       | URL Pública                                                    | Descripción                                 |
+| :--------------- | :------------------------------------------------------------- | :------------------------------------------ |
+| **Landing Page** | [parhelion.macrostasis.lat](https://parhelion.macrostasis.lat) | Página principal con changelog y navegación |
+| **Panel Admin**  | [phadmin.macrostasis.lat](https://phadmin.macrostasis.lat)     | Gestión administrativa (Angular)            |
+| **Operaciones**  | [phops.macrostasis.lat](https://phops.macrostasis.lat)         | App para almacenistas (React PWA)           |
+| **Driver App**   | [phdriver.macrostasis.lat](https://phdriver.macrostasis.lat)   | App para choferes (React PWA)               |
+
+> Infraestructura: Cloudflare Tunnel (Zero Trust) + Docker Compose + Digital Ocean
+
+---
+
 ## Stack Tecnológico
 
-| Capa                     | Tecnología                            | Usuario        |
-| :----------------------- | :------------------------------------ | :------------- |
-| **Backend**              | C# / .NET 8 Web API                   | -              |
-| **Base de Datos**        | PostgreSQL 16                         | -              |
-| **ORM**                  | Entity Framework Core (Code First)    | -              |
-| **Frontend (Admin)**     | Angular 18+ (Material Design)         | Admin          |
-| **Frontend (Operación)** | React (PWA)                           | Chofer/Almacén |
-| **Infraestructura**      | Docker Compose, Nginx (Reverse Proxy) | -              |
-| **Hosting**              | Digital Ocean Droplet (Linux)         | -              |
+| Capa                     | Tecnología                            | Usuario     |
+| :----------------------- | :------------------------------------ | :---------- |
+| **Backend**              | C# / .NET 8 Web API                   | -           |
+| **Base de Datos**        | PostgreSQL 17                         | -           |
+| **ORM**                  | Entity Framework Core (Code First)    | -           |
+| **Automatización**       | n8n (Workflow Automation)             | Agentes IA  |
+| **Frontend (Admin)**     | Angular 18+ (Material Design)         | Admin       |
+| **Frontend (Operacion)** | React + Vite + Tailwind CSS (PWA)     | Almacenista |
+| **Frontend (Campo)**     | React + Vite + Tailwind CSS (PWA)     | Chofer      |
+| **Infraestructura**      | Docker Compose, Nginx (Reverse Proxy) | -           |
+| **Hosting**              | Digital Ocean Droplet (Linux)         | -           |
+
+---
+
+## Design System
+
+El proyecto utiliza un estilo visual **Neo-Brutalism** con la paleta de colores "Industrial Solar":
+
+| Token   | Color     | Uso                             |
+| :------ | :-------- | :------------------------------ |
+| `oxide` | `#C85A17` | Acciones, acentos, hover states |
+| `sand`  | `#E8E6E1` | Fondos secundarios              |
+| `black` | `#000000` | Bordes, texto, sombras          |
+| `white` | `#FAFAFA` | Fondos principales              |
+
+### Tipografía
+
+- **Logo:** New Rocker (display font)
+- **Títulos:** Merriweather (serif)
+- **Body:** Inter (sans-serif)
+
+### Componentes
+
+Los frontends incluyen componentes pre-estilizados: `btn`, `btn-primary`, `btn-oxide`, `card`, `input` con sombras brutalist y transiciones sólidas (sin gradientes).
+
+> UI inspirada en [neobrutalism-components](https://github.com/ekmas/neobrutalism-components)
 
 ---
 
@@ -123,6 +185,73 @@ graph TD
     CC -->|LastMile| G
 ```
 
+### Integración n8n (Automatización)
+
+```mermaid
+flowchart LR
+    subgraph Backend["Parhelion API"]
+        API[Controllers]
+        WP[WebhookPublisher]
+        NC[NotificationsController]
+    end
+
+    subgraph n8n["n8n Workflows"]
+        WH{{Webhook Trigger}}
+        AI[/"AI Agent<br/>(Claude/GPT)"/]
+        HTTP[HTTP Request]
+    end
+
+    subgraph Mobile["Apps Móviles"]
+        APP[Driver App]
+    end
+
+    API -->|"shipment.exception"| WP
+    WP -->|"POST /webhook"| WH
+    WH --> AI
+    AI --> HTTP
+    HTTP -->|"POST /api/notifications"| NC
+    HTTP -->|"GET /api/drivers/nearby"| API
+    NC -.->|"Push Notification"| APP
+```
+
+**Flujo de Crisis Management:**
+
+1. Backend detecta `ShipmentStatus.Exception` → publica webhook
+2. n8n recibe evento → activa Agente IA
+3. Agente consulta `/api/drivers/nearby` con coordenadas del incidente
+4. Agente crea notificación para chofer de rescate
+5. App móvil recibe push notification
+
+---
+
+## Base de Datos
+
+### Tecnologías
+
+| Componente | Tecnología                            | Versión     |
+| ---------- | ------------------------------------- | ----------- |
+| ORM        | Entity Framework Core                 | 8.0.10      |
+| Provider   | Npgsql.EntityFrameworkCore.PostgreSQL | 8.0.10      |
+| Database   | PostgreSQL                            | 17 (Docker) |
+| Migrations | Code First                            | ✅          |
+
+### Características de Seguridad
+
+- **Anti SQL Injection:** Queries parameterizadas automáticas de EF Core
+- **Multi-Tenancy:** Query Filters globales por TenantId
+- **Soft Delete:** Todas las entidades soportan borrado lógico
+- **Audit Trail:** CreatedAt, UpdatedAt, DeletedAt automáticos
+- **Password Hashing:** BCrypt (usuarios) + Argon2id (admins)
+
+### Naming Convention
+
+```
+PascalCase en C# → PascalCase en PostgreSQL
+Ejemplo: ShipmentItem.TenantId → "ShipmentItems"."TenantId"
+```
+
+Para más detalles técnicos, ver [Sección 12 de database-schema.md](./database-schema.md#12-metodología-de-implementación-detalles-técnicos)
+
 ---
 
 ## Estructura del Proyecto
@@ -137,12 +266,15 @@ src/
 
 ---
 
-## Documentación
+## Documentacion
 
-| Documento                                        | Descripción                                   |
+| Documento                                        | Descripcion                                   |
 | :----------------------------------------------- | :-------------------------------------------- |
-| [Requerimientos (MVP)](./requirments.md)         | Especificación funcional completa del sistema |
+| [Requerimientos (MVP)](./requirments.md)         | Especificacion funcional completa del sistema |
 | [Esquema de Base de Datos](./database-schema.md) | Diagrama ER, entidades y reglas de negocio    |
+| [Arquitectura de API](./api-architecture.md)     | Estructura de capas y endpoints (v0.5.7)      |
+| [Guía de Webhooks](./service-webhooks.md)        | Integración n8n, eventos y notificaciones     |
+| [CHANGELOG](./CHANGELOG.md)                      | Historial detallado de todas las versiones    |
 
 ---
 
@@ -168,6 +300,35 @@ src/
 | :-------------- | :-------------------- |
 | **API Backend** | `api.macrostasis.lat` |
 | **Frontend**    | `macrostasis.lat`     |
+
+---
+
+## Roadmap
+
+### Completado
+
+| Version    | Fecha       | Descripcion                                                     |
+| ---------- | ----------- | --------------------------------------------------------------- |
+| v0.1.0     | 2025-12     | Estructura inicial, documentación de requerimientos             |
+| v0.2.0     | 2025-12     | Domain Layer: Entidades base y enumeraciones                    |
+| v0.3.0     | 2025-12     | Infrastructure Layer: EF Core, PostgreSQL, Migrations           |
+| v0.4.0     | 2025-12     | API Layer: Controllers base, JWT Authentication                 |
+| v0.5.0     | 2025-12     | Services Layer: Repository Pattern, UnitOfWork                  |
+| v0.5.1     | 2025-12     | Foundation Tests: DTOs, Repository, UnitOfWork                  |
+| v0.5.2     | 2025-12     | Services Implementation: 16 interfaces, 15 implementaciones     |
+| v0.5.3     | 2025-12     | Integration Tests: 72 tests para Services                       |
+| v0.5.4     | 2025-12     | Swagger/OpenAPI, Business Logic Workflow                        |
+| v0.5.5     | 2025-12     | WMS/TMS Services, Business Rules, 122 tests                     |
+| v0.5.6     | 2025-12     | n8n Integration, Webhooks, Notifications, ServiceApiKey         |
+| **v0.5.7** | **2025-12** | **Dynamic PDF Generation, Checkpoint Timeline, POD Signatures** |
+
+### Próximas Versiones (Pre-0.6.0)
+
+| Version    | Objetivo         | Características                                    |
+| ---------- | ---------------- | -------------------------------------------------- |
+| v0.5.8     | QR Handshake     | Transferencia de custodia digital via QR           |
+| v0.5.9     | Route Assignment | Asignación de rutas a shipments, avance por pasos  |
+| **v0.6.0** | **Dashboard**    | **KPIs operativos, métricas por status, Frontend** |
 
 ---
 

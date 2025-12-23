@@ -70,61 +70,61 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
 - [ ] **Alta de Recursos:** Después del registro, el cliente puede dar de alta camiones, choferes y ubicaciones.
 - [ ] **Multi-tenancy:** Cada cliente tiene su propio espacio aislado de datos.
 
-### Módulo 1: Seguridad y Acceso
+### Módulo 1: Seguridad y Acceso (v0.4.0+)
 
-- [ ] **Login:** El sistema debe permitir el ingreso mediante Email y Contraseña.
-- [ ] **Autenticación:** Debe usar tokens seguros (JWT). La sesión debe expirar automáticamente tras 2 horas de inactividad.
-- [ ] **Roles:** Admin, Driver, Warehouse (Almacenista), DemoUser.
-- [ ] **Protección:** Un Chofer no debe poder acceder a las pantallas de Administración (Rutas protegidas).
+- [x] **Login:** El sistema permite el ingreso mediante Email y Contraseña.
+- [x] **Autenticación:** Usa tokens seguros (JWT). La sesión expira automáticamente.
+- [x] **Roles:** Admin, Driver, Warehouse (Almacenista), SuperAdmin.
+- [x] **Protección:** Rutas protegidas por rol (Authorize).
 - [ ] **Recuperación de Contraseña:** Flujo básico de "Olvidé mi contraseña" con enlace temporal.
 
-### Módulo 2: Gestión de Flotilla (Camiones)
+### Módulo 2: Gestión de Flotilla (Camiones) (v0.4.0+)
 
-- [ ] **Listado:** Ver todos los camiones disponibles, su placa, modelo, tipo y chofer asignado.
-- [ ] **Alta de Camión:** Registrar placa (ej. "NL-554-X"), modelo, **Tipo de Camión** y capacidades.
-- [ ] **Tipos de Camión (TruckType):**
+- [x] **Listado:** Ver todos los camiones disponibles, su placa, modelo, tipo y chofer asignado.
+- [x] **Alta de Camión:** Registrar placa (ej. "NL-554-X"), modelo, **Tipo de Camión** y capacidades.
+- [x] **Tipos de Camión (TruckType):**
   - `DryBox` - Caja Seca (Estándar)
   - `Refrigerated` - Termo/Refrigerado (Cadena de frío)
   - `HazmatTank` - Pipa (Materiales peligrosos)
   - `Flatbed` - Plataforma (Carga pesada)
   - `Armored` - Blindado (Alto valor)
-- [ ] **Capacidades:** Peso máximo (kg) y volumen máximo (m³).
-- [ ] **Validación:** No pueden existir dos camiones con la misma placa dentro del mismo Cliente.
+- [x] **Capacidades:** Peso máximo (kg) y volumen máximo (m³).
+- [x] **Validación:** No pueden existir dos camiones con la misma placa dentro del mismo Cliente.
 
-### Módulo 2.5: Gestión de Choferes
+### Módulo 2.5: Gestión de Choferes (v0.5.4+)
 
-- [ ] **Listado:** Ver todos los choferes registrados y su estatus (Disponible, En Ruta, Inactivo).
-- [ ] **Alta de Chofer:** Registrar nombre, teléfono, email y licencia.
-- [ ] **Asignación Híbrida Chofer-Camión:**
+- [x] **Listado:** Ver todos los choferes registrados y su estatus (Disponible, En Ruta, Inactivo).
+- [x] **Alta de Chofer:** Registrar nombre, teléfono, email y licencia.
+- [x] **Asignación Híbrida Chofer-Camión:**
   - **default_truck_id:** Camión fijo asignado ("su unidad").
   - **current_truck_id:** Camión que conduce actualmente (puede diferir).
-- [ ] **Bitácora de Flotilla (FleetLog):** Registro automático de cada cambio de vehículo con motivo (ShiftChange, Breakdown, Reassignment).
+- [x] **Bitácora de Flotilla (FleetLog):** Registro automático de cada cambio de vehículo con motivo (ShiftChange, Breakdown, Reassignment).
 
-### Módulo 3: Red Logística (Locations)
+### Módulo 3: Red Logística (Locations) (v0.4.0+)
 
-- [ ] **Nodos de Red:** Gestión de ubicaciones con código único (estilo aeropuerto: MTY, GDL, MM).
-- [ ] **Tipos de Ubicación (LocationType):**
+- [x] **Nodos de Red:** Gestión de ubicaciones con código único (estilo aeropuerto: MTY, GDL, MM).
+- [x] **Tipos de Ubicación (LocationType):**
   - `RegionalHub` - Nodo central, recibe y despacha masivo
   - `CrossDock` - Transferencia rápida sin almacenamiento
   - `Warehouse` - Bodega de almacenamiento prolongado
   - `Store` - Punto de venta final (solo recibe)
   - `SupplierPlant` - Fábrica de origen (solo despacha)
-- [ ] **Capacidades:** Flags `can_receive` y `can_dispatch` por ubicación.
+- [x] **Capacidades:** Flags `can_receive` y `can_dispatch` por ubicación.
 
-### Módulo 3.5: Enrutamiento (Hub & Spoke)
+### Módulo 3.5: Enrutamiento (Hub & Spoke) (v0.5.0+)
 
-- [ ] **Enlaces de Red (NetworkLink):** Conexiones permitidas entre ubicaciones.
+- [x] **Enlaces de Red (NetworkLink):** Conexiones permitidas entre ubicaciones.
   - `FirstMile` - Recolección: Cliente/Proveedor → Hub
   - `LineHaul` - Carretera: Hub → Hub (larga distancia)
   - `LastMile` - Entrega: Hub → Cliente/Tienda
-- [ ] **Regla de Conexión:** Clientes no pueden conectarse directamente entre sí.
-- [ ] **Rutas Predefinidas (RouteBlueprint):** Secuencia de paradas con tiempos de tránsito.
+- [x] **Regla de Conexión:** Clientes no pueden conectarse directamente entre sí.
+- [x] **Rutas Predefinidas (RouteBlueprint):** Secuencia de paradas con tiempos de tránsito.
 - [ ] **Cálculo de ETA:** `scheduled_departure + SUM(transit_times)`.
 
-### Módulo 4: Envíos (Shipments)
+### Módulo 4: Envíos (Shipments) (v0.5.0+)
 
-- [ ] **Crear Envío:** Registrar origen, destino, ruta asignada, destinatario y prioridad.
-- [ ] **Flujo de Estados:**
+- [x] **Crear Envío:** Registrar origen, destino, ruta asignada, destinatario y prioridad.
+- [x] **Flujo de Estados:**
   - `PendingApproval` - Orden de servicio esperando revisión
   - `Approved` - Envío aprobado, listo para asignar
   - `Loaded` - Paquete cargado en camión
@@ -134,28 +134,28 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
   - `Delivered` - Entrega confirmada, POD capturado
   - `Exception` - Problema que requiere atención
 
-### Módulo 4.5: Manifiesto de Carga (ShipmentItems)
+### Módulo 4.5: Manifiesto de Carga (ShipmentItems) (v0.5.4+)
 
-- [ ] **Partidas:** SKU, descripción, cantidad, dimensiones, peso.
-- [ ] **Peso Volumétrico:** `(Largo × Ancho × Alto) / 5000`
-- [ ] **Valor Declarado:** Para cálculo de seguro.
-- [ ] **Flags Especiales:**
+- [x] **Partidas:** SKU, descripción, cantidad, dimensiones, peso.
+- [x] **Peso Volumétrico:** `(Largo × Ancho × Alto) / 5000`
+- [x] **Valor Declarado:** Para cálculo de seguro.
+- [x] **Flags Especiales:**
   - `is_fragile` - Requiere manejo cuidadoso
   - `is_hazardous` - Material peligroso (HAZMAT)
   - `requires_refrigeration` - Cadena de frío
-- [ ] **Instrucciones de Estiba:** "No apilar más de 2 niveles".
+- [x] **Instrucciones de Estiba:** "No apilar más de 2 niveles".
 
-### Módulo 5: Validación de Compatibilidad (Hard Constraints)
+### Módulo 5: Validación de Compatibilidad (Hard Constraints) (v0.5.5+)
 
-- [ ] **Cadena de Frío:** Items con `requires_refrigeration=true` SOLO en camiones `Refrigerated`.
-- [ ] **HAZMAT:** Items con `is_hazardous=true` SOLO en camiones `HazmatTank`.
-- [ ] **Alto Valor:** Si `SUM(declared_value) > $1,000,000`, requiere camión `Armored`.
-- [ ] **Capacidad:** La suma de peso/volumen NO puede exceder la capacidad del camión.
+- [x] **Cadena de Frío:** Items con `requires_refrigeration=true` SOLO en camiones `Refrigerated`.
+- [x] **HAZMAT:** Items con `is_hazardous=true` SOLO en camiones `HazmatTank`.
+- [x] **Alto Valor:** Si `SUM(declared_value) > $1,000,000`, requiere camión `Armored`.
+- [x] **Capacidad:** La suma de peso/volumen NO puede exceder la capacidad del camión.
 
-### Módulo 6: Trazabilidad (Checkpoints)
+### Módulo 6: Trazabilidad (Checkpoints) (v0.5.7)
 
-- [ ] **Bitácora de Eventos:** Cada acción genera un `ShipmentCheckpoint`.
-- [ ] **Códigos de Checkpoint:**
+- [x] **Bitácora de Eventos:** Cada acción genera un `ShipmentCheckpoint`.
+- [x] **Códigos de Checkpoint:**
   - `Loaded` - Paquete cargado en camión (manual)
   - `QrScanned` - Paquete escaneado por chofer (cadena custodia)
   - `ArrivedHub` - Llegó a un Hub/CEDIS
@@ -164,7 +164,8 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
   - `DeliveryAttempt` - Intento de entrega
   - `Delivered` - Entregado exitosamente
   - `Exception` - Problema reportado
-- [ ] **Inmutabilidad:** Los checkpoints no se modifican, solo se agregan nuevos.
+- [x] **Inmutabilidad:** Los checkpoints no se modifican, solo se agregan nuevos.
+- [x] **Timeline Metro:** `GET /api/shipment-checkpoints/timeline/{id}` con labels en español.
 
 ### Módulo 7: QR Handshake (Cadena de Custodia)
 
@@ -175,13 +176,15 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
   - Angular: `angularx-qrcode`
   - React: `react-qr-reader`
 
-### Módulo 8: Documentación B2B
+### Módulo 8: Documentación B2B (v0.5.7)
 
-- [ ] **Orden de Servicio:** Petición inicial del cliente a Admin.
-- [ ] **Carta Porte (Waybill):** Documento legal SAT con QR para inspecciones.
-- [ ] **Manifiesto de Carga:** Checklist de estiba para almacenista.
-- [ ] **Hoja de Ruta (TripSheet):** Itinerario con ventanas de entrega.
-- [ ] **POD (Proof of Delivery):** Firma digital del receptor, timestamp, incidencias.
+> Los documentos se generan dinámicamente con datos de BD. No hay almacenamiento de archivos.
+
+- [x] **Orden de Servicio:** `GET /api/documents/service-order/{shipmentId}`
+- [x] **Carta Porte (Waybill):** `GET /api/documents/waybill/{shipmentId}`
+- [x] **Manifiesto de Carga:** `GET /api/documents/manifest/{routeId}`
+- [x] **Hoja de Ruta (TripSheet):** `GET /api/documents/trip-sheet/{driverId}`
+- [x] **POD (Proof of Delivery):** `GET /api/documents/pod/{shipmentId}` con firma digital.
 
 ### Módulo 9: Dashboard (Panel de Control)
 
