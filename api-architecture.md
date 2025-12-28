@@ -4,9 +4,9 @@ Documentacion tecnica de la estructura API-First del backend Parhelion.
 
 ## Estado Actual
 
-**Version:** 0.5.7
-**Enfoque:** Dynamic PDF Generation + Checkpoint Timeline + POD Signatures
-**Arquitectura:** Clean Architecture + Domain-Driven Design
+**Version:** 0.6.0-alpha
+**Enfoque:** Python Microservice Integration + Analytics Foundation
+**Arquitectura:** Clean Architecture + Domain-Driven Design + Microservices
 
 ---
 
@@ -169,15 +169,61 @@ El token se obtiene via `/api/auth/login` con credenciales validas.
 
 ---
 
-## Pendientes (v0.5.8+)
+## Python Analytics Service (v0.6.0+)
+
+Microservicio local para análisis avanzado, predicciones y reportes.
+
+### Tecnologías
+
+| Componente | Tecnología               |
+| ---------- | ------------------------ |
+| Framework  | FastAPI 0.115+           |
+| Runtime    | Python 3.12+             |
+| ORM        | SQLAlchemy 2.0 + asyncpg |
+| Validación | Pydantic v2              |
+| Testing    | pytest + pytest-asyncio  |
+
+### Endpoints Python
+
+| Endpoint                      | Método | Descripción                      |
+| ----------------------------- | ------ | -------------------------------- |
+| `/health`                     | GET    | Estado del servicio              |
+| `/health/db`                  | GET    | Conectividad PostgreSQL          |
+| `/api/py/analytics/shipments` | GET    | Análisis de envíos por período   |
+| `/api/py/analytics/fleet`     | GET    | Métricas de utilización de flota |
+| `/api/py/predictions/eta`     | POST   | Predicción de ETA con ML         |
+| `/api/py/reports/export`      | POST   | Generación de reportes Excel     |
+
+### Autenticación Python
+
+Requiere header `X-Internal-Service-Key` para llamadas desde .NET API,
+o `Authorization: Bearer <jwt>` para llamadas desde n8n.
+
+### Comunicación Inter-Servicios
+
+```
+┌─────────────┐     REST/JSON      ┌─────────────┐
+│   .NET API  │◄──────────────────►│   Python    │
+│    :5000    │  Internal JWT/Key  │    :8000    │
+└──────┬──────┘                    └──────┬──────┘
+       │                                  │
+       └──────────► PostgreSQL ◄──────────┘
+                      :5432
+```
+
+---
+
+## Pendientes (v0.7.0+)
 
 Los siguientes items quedan pendientes para futuras versiones:
 
 - [ ] QR Handshake (Transferencia de custodia digital via QR)
 - [ ] Route Assignment (Asignación de rutas a shipments)
-- [ ] Dashboard (KPIs operativos, métricas por status)
+- [ ] Dashboard (KPIs operativos con procesamiento Python)
+- [ ] Predicción ETA con ML (Python)
+- [ ] Exportación Excel dinámica (Python + pandas)
 - [ ] Recuperación de contraseña
-- [ ] Cálculo de ETA dinámico
+- [ ] Demo Mode para reclutadores
 
 ---
 
@@ -187,4 +233,4 @@ La gestion de endpoints durante desarrollo utiliza herramientas privadas que no 
 
 ---
 
-**Ultima actualizacion:** 2025-12-23
+**Ultima actualizacion:** 2025-12-28

@@ -4,6 +4,70 @@ Historial de cambios del proyecto Parhelion Logistics.
 
 ---
 
+## [0.6.0-alpha] - 2025-12-28 (En Progreso)
+
+### Nuevo Sistema de Versionado
+
+A partir de esta versión, el proyecto adopta **Semantic Versioning (SemVer)** estricto con pre-releases:
+
+```
+MAJOR.MINOR.PATCH-PRERELEASE+BUILD
+Ejemplo: 0.6.0-alpha.1+build.2025.12.28
+```
+
+| Etapa   | Significado                                 |
+| ------- | ------------------------------------------- |
+| `alpha` | Desarrollo activo, funcionalidad incompleta |
+| `beta`  | Feature-complete, en testing                |
+| `rc`    | Release Candidate, listo para producción    |
+
+### Agregado
+
+- **Python Analytics Service** (Microservicio local):
+
+  - Framework: FastAPI 0.115+ con Python 3.12
+  - Arquitectura: Clean Architecture (domain, application, infrastructure, api)
+  - ORM: SQLAlchemy 2.0 + asyncpg (async PostgreSQL)
+  - Bounded Context: Analytics & Predictions (separado del Core .NET)
+  - Puerto interno: 8000
+  - Container name: `parhelion-python`
+
+- **Preparativos de Integración**:
+
+  - Documentación actualizada: README.md, api-architecture.md, database-schema.md
+  - `.gitignore` con patrones Python (**pycache**, .venv, .pytest_cache, etc.)
+  - Nuevo roadmap hacia v1.0.0 MVP (Q1 2026)
+  - Sistema de versionado SemVer con staged releases (alpha → beta → rc)
+
+### Modificado
+
+- `docker-compose.yml` - Preparado para servicio `python-analytics`
+- `README.md` - Stack tecnológico expandido con Python/FastAPI
+- `.github/workflows/ci.yml` - Estructura preparada para job Python
+
+### Arquitectura
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Docker Network                            │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────────────┐ │
+│  │ .NET API│◄─┤PostgreSQL├─►│ Python  │  │      n8n        │ │
+│  │  :5000  │  │  :5432  │  │  :8000  │  │     :5678       │ │
+│  └────┬────┘  └─────────┘  └────┬────┘  └────────┬────────┘ │
+│       │                         │                 │          │
+│       └─────────────────────────┴─────────────────┘          │
+│                    Internal REST/JSON                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Notas de Migración
+
+- Nueva variable de entorno requerida: `INTERNAL_SERVICE_KEY` para auth inter-servicios
+- Volume nuevo: `python_cache` para modelos ML (futuro)
+- El microservicio Python es local (como n8n), no expuesto públicamente
+
+---
+
 ## [0.5.7] - 2025-12-23
 
 ### Agregado

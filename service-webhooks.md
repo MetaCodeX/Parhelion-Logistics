@@ -106,3 +106,62 @@ Si el flujo de n8n necesita consultar información adicional a Parhelion (ej. "G
    - **Value:** `Bearer {{ $json.body.callbackToken }}`
 
 Esto asegura que el flujo utilice siempre el token válido de la sesión actual.
+
+---
+
+## 6. Integración con Python Analytics Service (v0.6.0+)
+
+El microservicio Python participa en el sistema de eventos para análisis y predicciones.
+
+### 6.1 Eventos hacia Python
+
+| Evento               | Trigger                  | Payload                                       |
+| -------------------- | ------------------------ | --------------------------------------------- |
+| `analytics.request`  | Admin solicita análisis  | `{ tenantId, dateRange, type, filters }`      |
+| `prediction.request` | n8n necesita ETA         | `{ shipmentId, currentLocation, urgency }`    |
+| `report.generate`    | Usuario solicita reporte | `{ tenantId, reportType, dateRange, format }` |
+
+### 6.2 Callbacks desde Python
+
+| Callback              | Destino  | Method | Payload                                    |
+| --------------------- | -------- | ------ | ------------------------------------------ |
+| `analytics.completed` | .NET API | POST   | `{ sessionId, results, executionTime }`    |
+| `prediction.ready`    | n8n      | POST   | `{ shipmentId, eta, confidence, factors }` |
+| `report.ready`        | .NET API | POST   | `{ reportId, downloadUrl, expiresAt }`     |
+
+### 6.3 Autenticación Python ↔ n8n
+
+Cuando n8n necesita llamar al Python Service:
+
+1. **URL Base:** `http://parhelion-python:8000/api/py`
+2. **Header:** `Authorization: Bearer {{ $json.body.callbackToken }}`
+3. **Scope requerido:** `analytics:read` o `predictions:execute`
+
+### 6.4 Ejemplo: Workflow n8n con Python
+
+```
+[Webhook Trigger]
+      ↓
+[shipment.exception received]
+      ↓
+[HTTP Request → Python]
+  POST /api/py/predictions/eta
+  { shipmentId, currentLocation }
+      ↓
+[Receive ETA prediction]
+      ↓
+[HTTP Request → .NET API]
+  POST /api/notifications
+  { driverId, message: "ETA actualizado" }
+```
+
+---
+
+## 7. Variables de Entorno Requeridas (v0.6.0+)
+
+| Variable               | Servicio     | Descripción                                                       |
+| ---------------------- | ------------ | ----------------------------------------------------------------- |
+| `INTERNAL_SERVICE_KEY` | .NET, Python | Clave compartida para auth inter-servicios                        |
+| `PYTHON_SERVICE_URL`   | .NET         | URL del servicio Python (default: `http://parhelion-python:8000`) |
+| `PARHELION_API_URL`    | Python       | URL del API .NET (default: `http://parhelion-api:5000`)           |
+| `JWT_SECRET`           | Todos        | Secreto compartido para validar tokens                            |

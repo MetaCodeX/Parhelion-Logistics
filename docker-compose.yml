@@ -1,8 +1,9 @@
 # ===================================
 # PARHELION LOGISTICS - Docker Compose
-# Version: 0.5.4
+# Version: 0.6.0-alpha
 # Red unificada: parhelion-network
 # Swagger UI: http://localhost:5100/swagger
+# Python Analytics: http://localhost:8000 (v0.6.0+)
 # ===================================
 
 services:
@@ -13,8 +14,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: parhelion_dev
-      POSTGRES_USER: ${DB_USER:-MetaCodeX}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-H4NZC0D3X1521}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_pgdata:/var/lib/postgresql/data
     ports:
@@ -23,7 +24,7 @@ services:
       - parhelion-network
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -U ${DB_USER:-MetaCodeX} -d parhelion_dev"]
+        ["CMD-SHELL", "pg_isready -U ${DB_USER} -d parhelion_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -40,7 +41,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=parhelion_dev;Username=${DB_USER:-MetaCodeX};Password=${DB_PASSWORD:-H4NZC0D3X1521}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=parhelion_dev;Username=${DB_USER};Password=${DB_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - N8N_WEBHOOK_SECRET=${N8N_WEBHOOK_SECRET}
       - N8N_BASE_URL=${N8N_BASE_URL:-http://parhelion-n8n:5678}
@@ -124,6 +125,42 @@ services:
       timeout: 10s
       retries: 3
 
+  # ===== PYTHON ANALYTICS SERVICE (v0.6.0) =====
+  python-analytics:
+    build:
+      context: ./service-python
+      dockerfile: Dockerfile
+    container_name: parhelion-python
+    restart: unless-stopped
+    ports:
+      - "${PYTHON_PORT:-8000}:8000"
+    environment:
+      # ===== DATABASE (Read Replica Pattern) =====
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres:5432/parhelion_dev
+      # ===== INTERNAL SERVICES =====
+      - PARHELION_API_URL=http://parhelion-api:5000
+      - PARHELION_API_INTERNAL_KEY=${INTERNAL_SERVICE_KEY}
+      # ===== SECURITY =====
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_NAME=python-analytics
+      # ===== RUNTIME =====
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - WORKERS=4
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - parhelion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   # ===== N8N AI ORCHESTRATOR =====
   # Docs: https://docs.n8n.io/hosting/configuration/environment-variables/
   n8n:
@@ -143,8 +180,8 @@ services:
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=parhelion_dev
-      - DB_POSTGRESDB_USER=${DB_USER:-MetaCodeX}
-      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:-H4NZC0D3X1521}
+      - DB_POSTGRESDB_USER=${DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
       
       # ===== WEBHOOKS =====
       - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678/}

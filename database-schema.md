@@ -1,9 +1,9 @@
 # PARHELION-LOGISTICS | Modelo de Base de Datos
 
-**Version:** 2.6 (v0.5.6 - n8n Integration + Webhooks + Notifications)  
+**Version:** 2.7 (v0.6.0-alpha - Python Analytics Integration)  
 **Fecha:** Diciembre 2025  
-**Motor:** PostgreSQL + Entity Framework Core (Code First)  
-**Estado:** Diseno Cerrado - Listo para Implementacion
+**Motor:** PostgreSQL + Entity Framework Core (Code First) + SQLAlchemy (Python)  
+**Estado:** Diseno Abierto - Integracion Python en Progreso
 
 > **Nota Tecnica:** Esta plataforma unifica WMS (Warehouse Management System) y TMS (Transportation Management System). El modulo de almacen gestiona inventario estatico y carga, mientras que el nucleo TMS maneja logistica de media milla: gestion de flotas tipificadas, redes Hub & Spoke y trazabilidad de envios en movimiento.
 
@@ -85,7 +85,7 @@ erDiagram
 
 ---
 
-## 1.1 Entidades del Sistema (25 tablas)
+## 1.1 Entidades del Sistema (27 tablas)
 
 | Modulo        | Entidades                                                    |
 | ------------- | ------------------------------------------------------------ |
@@ -98,6 +98,7 @@ erDiagram
 | **Routing**   | RouteBlueprint, RouteStep, NetworkLink                       |
 | **CRM**       | Client                                                       |
 | **n8n**       | Notification                                                 |
+| **Analytics** | AnalyticsSession, PredictionResult (Python Service)          |
 
 ---
 

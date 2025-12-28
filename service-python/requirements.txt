@@ -1,0 +1,28 @@
+# ===================================
+# PARHELION PYTHON SERVICE - Requirements
+# Generated from pyproject.toml for Docker builds
+# ===================================
+
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Database
+sqlalchemy[asyncio]>=2.0.0
+asyncpg>=0.30.0
+
+# Validation & Settings
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+
+# HTTP Client
+httpx>=0.28.0
+
+# Security
+python-jose[cryptography]>=3.3.0
+
+# Utilities
+python-multipart>=0.0.18
+
+# Production Server
+gunicorn>=23.0.0

@@ -203,6 +203,65 @@ El sistema debe soportar los siguientes tipos de usuarios con permisos distintos
 - [ ] **Aislamiento:** Los datos de demo NO afectan a usuarios reales.
 - [ ] **Uso Portfolio:** El sistema será visible para reclutadores como demostración de habilidades técnicas.
 
+### Módulo 11: Python Analytics Service (v0.6.0+)
+
+> Microservicio Python local para análisis avanzado y procesamiento de datos.
+
+- [ ] **Infraestructura Base:**
+
+  - Framework: FastAPI 0.115+ con Python 3.12
+  - ORM: SQLAlchemy 2.0 + asyncpg (async PostgreSQL)
+  - Docker service: `python-analytics` en puerto 8000
+  - Health endpoints: `/health`, `/health/db`
+
+- [ ] **Análisis de Envíos:**
+
+  - Métricas históricas por período, tenant, ruta
+  - Endpoint: `GET /api/py/analytics/shipments`
+  - Filtros: fecha, status, ubicación, chofer
+
+- [ ] **Análisis de Flota:**
+  - KPIs de ocupación, tiempo muerto, distancia
+  - Endpoint: `GET /api/py/analytics/fleet`
+  - Métricas por camión, chofer, tipo de unidad
+
+### Módulo 12: Predicciones ML (v0.7.0+)
+
+- [ ] **Predicción de ETA:**
+
+  - Modelo basado en historial de checkpoints
+  - Endpoint: `POST /api/py/predictions/eta`
+  - Input: shipmentId, currentLocation
+  - Output: ETA estimado con nivel de confianza
+
+- [ ] **Detección de Anomalías:**
+  - Identificar envíos con riesgo de retraso
+  - Alertas proactivas vía webhook a n8n
+
+### Módulo 13: Reportes Dinámicos (v0.7.0+)
+
+- [ ] **Exportación Excel:**
+
+  - Generación con pandas + openpyxl
+  - Endpoint: `POST /api/py/reports/export`
+  - Tipos: Reporte Diario, Reporte Mensual, KPIs de Flota
+
+- [ ] **Formatos Personalizados:**
+  - Templates predefinidos por tipo de reporte
+  - Logos y branding del tenant
+
+### Módulo 14: Comunicación Inter-Servicios (v0.6.0+)
+
+- [ ] **Autenticación Interna:**
+
+  - Header `X-Internal-Service-Key` para .NET → Python
+  - Callback Token JWT para n8n → Python
+  - Scopes: `analytics:read`, `predictions:execute`, `reports:generate`
+
+- [ ] **Anti-Corruption Layer (ACL):**
+  - `ParhelionApiClient` en Python traduce modelos .NET
+  - Aislamiento de Bounded Contexts (DDD)
+
 ---
 
 ## 4. Requerimientos Técnicos (Non-Functional)

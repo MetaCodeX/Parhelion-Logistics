@@ -137,5 +137,46 @@ http://localhost:5100/swagger
 
 ---
 
-**Versión**: 0.5.0  
-**Última actualización**: 2025-12-14
+**Versión**: 0.6.0-alpha  
+**Última actualización**: 2025-12-28
+
+---
+
+## Python Analytics Service (v0.6.0+)
+
+Microservicio local para análisis avanzado y predicciones.
+
+**Base URL:** `http://localhost:8000` (interno: `http://parhelion-python:8000`)
+
+### Health Endpoints
+
+```bash
+GET /health        # Service status
+GET /health/db     # Database connectivity
+```
+
+### Analytics Endpoints
+
+```bash
+GET /api/py/analytics/shipments     # Análisis de envíos por período
+GET /api/py/analytics/fleet         # Métricas de utilización de flota
+```
+
+### Predictions Endpoints
+
+```bash
+POST /api/py/predictions/eta        # Predicción de ETA con ML
+```
+
+### Reports Endpoints
+
+```bash
+POST /api/py/reports/export         # Generación de reportes Excel
+```
+
+### Autenticación Python
+
+```http
+X-Internal-Service-Key: <internal_key>  # Desde .NET API
+Authorization: Bearer <callback_token>   # Desde n8n
+```
