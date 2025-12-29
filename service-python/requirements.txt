@@ -1,0 +1,51 @@
+# ========================================
+# Parhelion Python Analytics Requirements
+# v0.6.0 - Full ML Stack
+# ========================================
+
+# Core Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+gunicorn>=23.0.0
+
+# Database
+sqlalchemy[asyncio]>=2.0.0
+asyncpg>=0.30.0
+
+# Validation & Settings
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+
+# HTTP Client
+httpx>=0.28.0
+
+# Security
+python-jose[cryptography]>=3.3.0
+python-multipart>=0.0.18
+
+# ========================================
+# ML & Analytics Stack
+# ========================================
+
+# Data Analysis
+pandas>=2.2.0
+numpy>=2.0.0
+openpyxl>=3.1.0
+
+# Machine Learning
+scikit-learn>=1.5.0
+
+# Graph Analytics
+networkx>=3.0
+
+# Time Series
+statsmodels>=0.14.0
+
+# 3D Bin Packing
+py3dbp>=1.1.0
+
+# Visualization
+plotly>=5.0.0
+
+# Community Detection
+python-louvain>=0.16

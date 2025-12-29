@@ -1,0 +1,261 @@
+# ===================================
+# PARHELION LOGISTICS - Docker Compose
+# Version: 0.6.0-alpha
+# Red unificada: parhelion-network
+# Swagger UI: http://localhost:5100/swagger
+# Python Analytics: http://localhost:8000 (v0.6.0+)
+# ===================================
+
+services:
+  # ===== BASE DE DATOS =====
+  postgres:
+    image: postgres:17
+    container_name: parhelion-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: parhelion_dev
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - parhelion-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DB_USER} -d parhelion_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== BACKEND API =====
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: parhelion-api
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-5100}:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=parhelion_dev;Username=${DB_USER};Password=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - N8N_WEBHOOK_SECRET=${N8N_WEBHOOK_SECRET}
+      - PYTHON_ANALYTICS_URL=http://parhelion-python:8000
+      - N8N_BASE_URL=${N8N_BASE_URL:-http://parhelion-n8n:5678}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - parhelion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ===== FRONTEND ADMIN (Angular) =====
+  admin:
+    build:
+      context: ./frontend-admin
+      dockerfile: Dockerfile
+    container_name: parhelion-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-4100}:80"
+    networks:
+      - parhelion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== FRONTEND INICIO (Angular Landing) =====
+  inicio:
+    build:
+      context: ./frontend-inicio
+      dockerfile: Dockerfile
+    container_name: parhelion-inicio
+    restart: unless-stopped
+    ports:
+      - "${INICIO_PORT:-4000}:80"
+    networks:
+      - parhelion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== FRONTEND OPERACIONES (React PWA) =====
+  operaciones:
+    build:
+      context: ./frontend-operaciones
+      dockerfile: Dockerfile
+    container_name: parhelion-operaciones
+    restart: unless-stopped
+    ports:
+      - "${OPERACIONES_PORT:-5101}:80"
+    networks:
+      - parhelion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== FRONTEND CAMPO (React PWA) =====
+  campo:
+    build:
+      context: ./frontend-campo
+      dockerfile: Dockerfile
+    container_name: parhelion-campo
+    restart: unless-stopped
+    ports:
+      - "${CAMPO_PORT:-5102}:80"
+    networks:
+      - parhelion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== PYTHON ANALYTICS SERVICE (v0.6.0) =====
+  python-analytics:
+    build:
+      context: ./service-python
+      dockerfile: Dockerfile
+    container_name: parhelion-python
+    restart: unless-stopped
+    # No external ports - internal service only
+    expose:
+      - "8000"
+    environment:
+      # ===== DATABASE (Read Replica Pattern) =====
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres:5432/parhelion_dev
+      # ===== INTERNAL SERVICES =====
+      - PARHELION_API_URL=http://parhelion-api:5000
+      - PARHELION_API_INTERNAL_KEY=${INTERNAL_SERVICE_KEY}
+      # ===== SECURITY =====
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_NAME=python-analytics
+      # ===== RUNTIME =====
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - WORKERS=4
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - parhelion-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ===== N8N AI ORCHESTRATOR =====
+  # Docs: https://docs.n8n.io/hosting/configuration/environment-variables/
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: parhelion-n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      # ===== AUTH =====
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-parhelion2024}
+      
+      # ===== DATABASE (usa PostgreSQL de Parhelion) =====
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=parhelion_dev
+      - DB_POSTGRESDB_USER=${DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
+      
+      # ===== WEBHOOKS =====
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      
+      # ===== DEVELOPMENT MODE =====
+      # Desactivar cookies seguras para HTTP (desarrollo via Tailscale)
+      - N8N_SECURE_COOKIE=false
+      - N8N_PROTOCOL=http
+      - N8N_HOST=0.0.0.0
+      
+      # ===== PRODUCTION MODE (descomentar cuando se use HTTPS) =====
+      # - N8N_SECURE_COOKIE=true
+      # - N8N_PROTOCOL=https
+      # - N8N_SSL_KEY=/ssl/key.pem
+      # - N8N_SSL_CERT=/ssl/cert.pem
+      
+      # ===== GENERAL =====
+      - GENERIC_TIMEZONE=America/Mexico_City
+      - N8N_LOG_LEVEL=info
+      # Desactivar telemetría y features que requieren conexión externa
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=false
+      - N8N_TEMPLATES_ENABLED=true
+      - N8N_PERSONALIZATION_ENABLED=false
+      # Desactivar prompts de licencia community
+      - N8N_HIDE_USAGE_PAGE=true
+      - N8N_USER_MANAGEMENT_DISABLED=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+      # Para producción con SSL:
+      # - ./ssl:/ssl:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - parhelion-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== CLOUDFLARE TUNNEL =====
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: parhelion-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      api:
+        condition: service_healthy
+      admin:
+        condition: service_healthy
+      operaciones:
+        condition: service_healthy
+      campo:
+        condition: service_healthy
+    networks:
+      - parhelion-network
+
+# ===== VOLUMES =====
+volumes:
+  postgres_pgdata:
+    external: true
+    name: postgres_pgdata
+  n8n_data:
+    name: parhelion_n8n_data
+
+# ===== NETWORK =====
+networks:
+  parhelion-network:
+    name: parhelion-network
+    driver: bridge

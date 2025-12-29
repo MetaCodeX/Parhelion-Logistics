@@ -1,0 +1,99 @@
+# ===========================
+# PARHELION-LOGISTICS GITIGNORE
+# ===========================
+
+# ===== ENVIRONMENT & SECRETS =====
+.env
+.env.*
+!.env.example
+*.local
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# ===== NODE (Angular/React) =====
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vite/
+
+# ===== .NET =====
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.csproj.user
+publish/
+out/
+
+# ===== IDE =====
+.idea/
+*.swp
+*.swo
+*~
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+*.log
+
+# ===== Docker =====
+docker-compose.override.yml
+
+# ===== Coverage & Testing =====
+coverage/
+*.lcov
+.nyc_output/
+TestResults/
+
+# ===== Misc =====
+*.tmp
+*.temp
+*.bak
+
+# ===== PYTHON =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+.ipynb_checkpoints/
+
+# ===== Local Development Tools (NEVER in production) =====
+# Control panel is a private development tool - never committed to repository
+control-panel/
+agent/
+
+# ===== Scripts (Stress Tests / Dev Only) =====
+scripts/
+credentials.dev.txt
+stress_tests.py

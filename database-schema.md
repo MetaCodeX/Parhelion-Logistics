@@ -1,11 +1,13 @@
 # PARHELION-LOGISTICS | Modelo de Base de Datos
 
-**Versión:** 2.3 (Final - Scope Freeze)
-**Fecha:** Diciembre 2025
-**Motor:** PostgreSQL + Entity Framework Core (Code First)
-**Estado:** Diseño Cerrado - Listo para Implementación
+**Version:** 2.7 (v0.6.0-alpha - Python Analytics Integration)  
+**Fecha:** Diciembre 2025  
+**Motor:** PostgreSQL + Entity Framework Core (Code First) + SQLAlchemy (Python)  
+**Estado:** Diseno Abierto - Integracion Python en Progreso
 
-> **Nota Técnica:** Esta plataforma unifica WMS (Warehouse Management System) y TMS (Transportation Management System). El módulo de almacén gestiona inventario estático y carga, mientras que el núcleo TMS maneja logística de media milla: gestión de flotas tipificadas, redes Hub & Spoke y trazabilidad de envíos en movimiento.
+> **Nota Tecnica:** Esta plataforma unifica WMS (Warehouse Management System) y TMS (Transportation Management System). El modulo de almacen gestiona inventario estatico y carga, mientras que el nucleo TMS maneja logistica de media milla: gestion de flotas tipificadas, redes Hub & Spoke y trazabilidad de envios en movimiento.
+
+> **v0.5.6:** Agrega Notification (sistema de notificaciones para agentes IA), ServiceApiKey (autenticación multi-tenant para servicios externos), telemetría GPS en Truck (LastLatitude/Longitude), y búsqueda geospacial de choferes.
 
 ---
 
@@ -50,197 +52,57 @@ erDiagram
     %% ========== HISTÓRICOS ==========
     DRIVER ||--o{ FLEET_LOG : "historial cambios vehículo"
 
-    %% ========== ENTIDADES CORE ==========
-    TENANT {
-        uuid id PK
-        string company_name
-        string contact_email
-        int fleet_size
-        int driver_count
-        datetime created_at
-        boolean is_active
-    }
+    %% ========== CLIENTES Y AUTH (v0.4.2) ==========
+    TENANT ||--o{ CLIENT : "tiene clientes"
+    CLIENT ||--o{ SHIPMENT : "envía como remitente"
+    CLIENT ||--o{ SHIPMENT : "recibe como destinatario"
+    USER ||--o{ REFRESH_TOKEN : "tiene tokens"
+    DRIVER ||--o{ SHIPMENT_CHECKPOINT : "maneja paquetes"
+    TRUCK ||--o{ SHIPMENT_CHECKPOINT : "carga paquetes"
 
-    USER {
-        uuid id PK
-        uuid tenant_id FK
-        string email UK
-        string password_hash
-        string full_name
-        uuid role_id FK
-        boolean is_demo_user
-        datetime last_login
-        datetime created_at
-        boolean is_active
-    }
+    %% ========== EMPLOYEE LAYER (v0.4.3) ==========
+    TENANT ||--o{ EMPLOYEE : "emplea"
+    TENANT ||--o{ SHIFT : "define turnos"
+    USER ||--o| EMPLOYEE : "tiene perfil de empleado"
+    EMPLOYEE ||--o| DRIVER : "extensión chofer"
+    EMPLOYEE ||--o| WAREHOUSE_OPERATOR : "extensión almacenista"
+    EMPLOYEE }o--o| SHIFT : "tiene turno"
+    LOCATION ||--o{ WAREHOUSE_ZONE : "tiene zonas"
+    LOCATION ||--o{ WAREHOUSE_OPERATOR : "asigna operadores"
+    WAREHOUSE_ZONE ||--o{ WAREHOUSE_OPERATOR : "asigna a zona"
+    WAREHOUSE_OPERATOR ||--o{ SHIPMENT_CHECKPOINT : "maneja paquetes"
 
-    ROLE {
-        uuid id PK
-        string name UK
-        string description
-    }
-
-    DRIVER {
-        uuid id PK
-        uuid tenant_id FK
-        uuid user_id FK
-        string full_name
-        string phone
-        string license_number
-        uuid default_truck_id FK "nullable - asignación fija"
-        uuid current_truck_id FK "nullable - camión actual"
-        string status "Available|OnRoute|Inactive"
-        datetime created_at
-    }
-
-    TRUCK {
-        uuid id PK
-        uuid tenant_id FK
-        string plate UK
-        string model
-        string type "DryBox|Refrigerated|HazmatTank|Flatbed|Armored"
-        decimal max_capacity_kg
-        decimal max_volume_m3
-        boolean is_active
-        datetime created_at
-    }
-
-    %% ========== ENTIDADES ENTERPRISE ==========
-    LOCATION {
-        uuid id PK
-        uuid tenant_id FK
-        string code UK "Ej: MTY, GDL, MM - Código corto único"
-        string name "Ej: CEDIS Norte"
-        string type "RegionalHub|CrossDock|Warehouse|Store|SupplierPlant"
-        string full_address
-        boolean can_receive "Puede recibir mercancía"
-        boolean can_dispatch "Puede despachar mercancía"
-        boolean is_internal "Propio o externo"
-        boolean is_active
-        datetime created_at
-    }
-
-    SHIPMENT {
-        uuid id PK
-        uuid tenant_id FK
-        string tracking_number UK "PAR-XXXXXX"
-        string qr_code_data "String único para generar QR"
-        uuid origin_location_id FK
-        uuid destination_location_id FK
-        uuid assigned_route_id FK "nullable - Ruta predefinida asignada"
-        int current_step_order "nullable - Paso actual en la ruta"
-        string recipient_name
-        string recipient_phone
-        decimal total_weight_kg
-        decimal total_volume_m3
-        decimal declared_value
-        string sat_merchandise_code "nullable - Código SAT para Carta Porte"
-        string delivery_instructions "nullable - Instrucciones para Hoja de Ruta"
-        string recipient_signature_url "nullable - URL firma digital POD"
-        string priority "Normal|Urgent|Express"
-        string status "PendingApproval|Approved|Loaded|InTransit|AtHub|OutForDelivery|Delivered|Exception"
-        uuid truck_id FK "nullable"
-        uuid driver_id FK "nullable"
-        boolean was_qr_scanned "True si se usó cámara"
-        boolean is_delayed "True si hay retraso (avería, tráfico)"
-        datetime scheduled_departure "nullable - Fecha/hora salida planeada"
-        datetime pickup_window_start "nullable - Ventana de recolección"
-        datetime pickup_window_end "nullable"
-        datetime estimated_arrival "Calculada: Salida + Suma tiempos ruta"
-        datetime assigned_at "nullable"
-        datetime delivered_at "nullable"
-        datetime created_at
-    }
-
-    SHIPMENT_ITEM {
-        uuid id PK
-        uuid shipment_id FK
-        string sku "nullable"
-        string description
-        string packaging_type "Pallet|Box|Drum|Piece"
-        int quantity
-        decimal weight_kg
-        decimal width_cm
-        decimal height_cm
-        decimal length_cm
-        decimal volume_m3 "Calculado"
-        decimal declared_value "Valor monetario para seguro"
-        boolean is_fragile
-        boolean is_hazardous
-        boolean requires_refrigeration
-        string stacking_instructions "nullable - Ej: No apilar"
-        datetime created_at
-    }
-
-    SHIPMENT_CHECKPOINT {
-        uuid id PK
-        uuid shipment_id FK
-        uuid location_id FK "nullable"
-        string status_code "Loaded|ArrivedHub|DepartedHub|OutForDelivery|DeliveryAttempt|Delivered|Exception"
-        string remarks "Comentarios del operador"
-        datetime timestamp
-        uuid created_by_user_id FK
-    }
-
-    FLEET_LOG {
-        uuid id PK
-        uuid tenant_id FK
-        uuid driver_id FK
-        uuid old_truck_id FK "nullable - si venía sin camión"
-        uuid new_truck_id FK
-        string reason "ShiftChange|Breakdown|Reassignment"
-        datetime timestamp
-        uuid created_by_user_id FK
-    }
-
-    SHIPMENT_DOCUMENT {
-        uuid id PK
-        uuid shipment_id FK
-        string document_type "ServiceOrder|Waybill|Manifest|TripSheet|POD"
-        string file_url "URL al PDF o imagen"
-        string generated_by "System|User"
-        datetime generated_at
-        datetime expires_at "nullable - para documentos temporales"
-    }
-
-    %% ========== ENRUTAMIENTO (HUB & SPOKE) ==========
-    ROUTE_BLUEPRINT {
-        uuid id PK
-        uuid tenant_id FK
-        string name "Ej: Ruta Mty-Saltillo-Torreón"
-        string description "nullable"
-        int total_steps "Número de paradas"
-        time total_transit_time "Suma de tiempos de tránsito"
-        boolean is_active
-        datetime created_at
-    }
-
-    ROUTE_STEP {
-        uuid id PK
-        uuid route_blueprint_id FK
-        uuid location_id FK "La sede (Hub, Almacén, etc.)"
-        int step_order "1, 2, 3... Orden de la parada"
-        time standard_transit_time "Tiempo desde parada anterior"
-        string step_type "Origin|Intermediate|Destination"
-        datetime created_at
-    }
-
-    NETWORK_LINK {
-        uuid id PK
-        uuid tenant_id FK
-        uuid origin_location_id FK
-        uuid destination_location_id FK
-        string link_type "FirstMile|LineHaul|LastMile"
-        time transit_time "Tiempo estándar del tramo"
-        boolean is_bidirectional "Si aplica en ambas direcciones"
-        boolean is_active
-        datetime created_at
-    }
+    %% ========== INVENTARIO Y CATALOGO (v0.4.4) ==========
+    TENANT ||--o{ CATALOG_ITEM : "tiene productos"
+    CATALOG_ITEM ||--o{ SHIPMENT_ITEM : "referencia"
+    CATALOG_ITEM ||--o{ INVENTORY_STOCK : "existe en"
+    WAREHOUSE_ZONE ||--o{ INVENTORY_STOCK : "contiene"
+    WAREHOUSE_ZONE ||--o{ INVENTORY_TRANSACTION : "origen-destino"
+    USER ||--o{ INVENTORY_TRANSACTION : "ejecuta"
 ```
+
+> **Nota:** Los atributos detallados de cada entidad se documentan en las Secciones 2-9.
 
 ---
 
-## 2. Módulos del Sistema
+## 1.1 Entidades del Sistema (27 tablas)
+
+| Modulo        | Entidades                                                    |
+| ------------- | ------------------------------------------------------------ |
+| **Core**      | Tenant, User, Role, RefreshToken, ServiceApiKey              |
+| **Employee**  | Employee, Shift                                              |
+| **Fleet**     | Driver, Truck, FleetLog                                      |
+| **Warehouse** | Location, WarehouseZone, WarehouseOperator                   |
+| **Inventory** | CatalogItem, InventoryStock, InventoryTransaction            |
+| **Shipment**  | Shipment, ShipmentItem, ShipmentCheckpoint, ShipmentDocument |
+| **Routing**   | RouteBlueprint, RouteStep, NetworkLink                       |
+| **CRM**       | Client                                                       |
+| **n8n**       | Notification                                                 |
+| **Analytics** | AnalyticsSession, PredictionResult (Python Service)          |
+
+---
+
+## 2. Modulos del Sistema
 
 ### 2.1 Módulo Core (Multi-Tenant)
 
@@ -250,7 +112,117 @@ erDiagram
 | `USER`   | Usuarios del sistema (Admin, Chofer, Demo). Siempre pertenece a un Tenant.   |
 | `ROLE`   | Roles del sistema: `Admin`, `Driver`, `DemoUser`.                            |
 
-### 2.2 Módulo de Flotilla
+### 2.2 Módulo n8n / Automatización (v0.5.6)
+
+Este módulo soporta la integración con n8n para automatización de workflows y agentes de IA.
+
+#### 2.2.1 ServiceApiKey - Autenticación de Agentes
+
+| Campo            | Tipo          | Descripción                                                       |
+| ---------------- | ------------- | ----------------------------------------------------------------- |
+| `Id`             | UUID          | Primary Key                                                       |
+| `TenantId`       | UUID          | FK → Tenant. Cada API Key pertenece a un tenant específico        |
+| `KeyHash`        | VARCHAR(64)   | SHA256 hash de la key (nunca plain text)                          |
+| `Name`           | VARCHAR(100)  | Nombre descriptivo (ej: "n8n-production")                         |
+| `Description`    | VARCHAR(500)  | Propósito de la key                                               |
+| `Scopes`         | VARCHAR(1000) | Permisos comma-separated (ej: "drivers:read,notifications:write") |
+| `ExpiresAt`      | TIMESTAMP     | Fecha de expiración (NULL = no expira)                            |
+| `LastUsedAt`     | TIMESTAMP     | Último uso registrado                                             |
+| `LastUsedFromIp` | VARCHAR(45)   | Dirección IP del último request                                   |
+| `IsActive`       | BOOLEAN       | Estado activo/inactivo                                            |
+
+**Flujo de Autenticación:**
+
+```mermaid
+sequenceDiagram
+    participant n8n as n8n Agent
+    participant API as Parhelion API
+    participant DB as PostgreSQL
+
+    n8n->>API: GET /api/drivers/nearby<br/>X-Service-Key: abc123
+    API->>API: SHA256("abc123") → hash
+    API->>DB: SELECT * FROM ServiceApiKeys<br/>WHERE KeyHash = hash
+    DB-->>API: TenantId, Description
+    Note over API: Valida Scope y Permisos
+
+#### 2.2.2 CallbackToken (JWT) - Autenticación Temporal para Webhooks
+
+Para integraciones de ida y vuelta (como n8n), el sistema utiliza eventos Webhook que incluyen un `CallbackToken`.
+
+- **Mecanismo:** JWT (JSON Web Token) firmado con `JWT_SECRET`.
+- **Duración:** 15 minutos.
+- **Payload:** Incluye `TenantId`, `CorrelationId` y `Scope` (callback).
+- **Flujo:**
+    1. Backend envía POST Webhook a n8n con `payload` y `callbackToken`.
+    2. n8n recibe el evento.
+    3. n8n realiza llamadas al API (ej. GET Drivers) usando header: `Authorization: Bearer <callbackToken>`.
+    4. Backend valida firma y expiración sin consultar BD.
+    5. Token expira automáticamente.
+
+Esto elimina la necesidad de compartir `ServiceApiKeys` de larga duración con flujos temporales externos.
+    API->>API: HttpContext.Items["ServiceTenantId"] = xxx
+    API->>DB: Query con TenantId filter
+    DB-->>API: Drivers del tenant
+    API-->>n8n: 200 OK [{driver1}, {driver2}]
+```
+
+**Generación de API Key (Responsabilidad del SuperAdmin):**
+
+> Cuando el SuperAdmin crea un nuevo Tenant, también debe crear una ServiceApiKey asociada.
+> La key plain-text se muestra UNA SOLA VEZ al momento de creación.
+
+```sql
+-- Ejemplo: Crear API Key para tenant "AcmeCorp"
+INSERT INTO "ServiceApiKeys" (
+    "Id", "TenantId", "KeyHash", "Name", "IsActive", "CreatedAt", "IsDeleted"
+) VALUES (
+    gen_random_uuid(),
+    'acme-tenant-uuid-here',
+    encode(sha256('secret-key-aqui'::bytea), 'hex'),
+    'n8n-acme-production',
+    true, NOW(), false
+);
+```
+
+#### 2.2.2 Notification - Notificaciones para Apps Móviles
+
+| Campo               | Tipo         | Descripción                                          |
+| ------------------- | ------------ | ---------------------------------------------------- |
+| `Id`                | UUID         | Primary Key                                          |
+| `TenantId`          | UUID         | FK → Tenant                                          |
+| `UserId`            | UUID         | FK → User. Destinatario de la notificación           |
+| `Title`             | VARCHAR(200) | Título corto                                         |
+| `Message`           | TEXT         | Contenido completo                                   |
+| `Type`              | ENUM         | Alert, Info, Warning, Success                        |
+| `Priority`          | ENUM         | Low, Normal, High, Urgent                            |
+| `RelatedEntityType` | VARCHAR(50)  | Tipo de entidad relacionada (Shipment, Driver, etc.) |
+| `RelatedEntityId`   | UUID         | UUID de la entidad relacionada                       |
+| `IsRead`            | BOOLEAN      | Marca de lectura                                     |
+| `ReadAt`            | TIMESTAMP    | Fecha/hora de lectura                                |
+| `ExpiresAt`         | TIMESTAMP    | Auto-eliminación después de esta fecha               |
+| `ActionUrl`         | VARCHAR(500) | Deep link para la app móvil                          |
+| `Metadata`          | JSONB        | Datos adicionales libres                             |
+
+**Tipos de Notificación:**
+
+| Tipo      | Uso                                  |
+| --------- | ------------------------------------ |
+| `Alert`   | Emergencias, excepciones críticas    |
+| `Info`    | Información general                  |
+| `Warning` | Advertencias que requieren atención  |
+| `Success` | Confirmaciones, acciones completadas |
+
+**Flujo n8n → App Móvil:**
+
+```mermaid
+flowchart LR
+    N8N[n8n Agent] -->|POST /api/notifications| API[Parhelion API]
+    API -->|INSERT| DB[(PostgreSQL)]
+    DB -.->|Polling / WebSocket| APP[Driver App]
+    APP -->|PATCH /read| API
+```
+
+### 2.3 Módulo de Flotilla
 
 | Tabla       | Propósito                                                                                      |
 | ----------- | ---------------------------------------------------------------------------------------------- |
@@ -547,14 +519,37 @@ stateDiagram-v2
 
 ---
 
-## 5. Roles del Sistema (Seed Data)
+## 5. Roles del Sistema y Permisos
+
+### 5.1 Roles (Seed Data)
 
 ```sql
 INSERT INTO roles (id, name, description) VALUES
   ('11111111-1111-1111-1111-111111111111', 'Admin', 'Gerente de Tráfico - Acceso total'),
   ('22222222-2222-2222-2222-222222222222', 'Driver', 'Chofer - Solo ve sus envíos'),
-  ('33333333-3333-3333-3333-333333333333', 'DemoUser', 'Usuario de demostración temporal');
+  ('33333333-3333-3333-3333-333333333333', 'DemoUser', 'Usuario de demostración temporal'),
+  ('44444444-4444-4444-4444-444444444444', 'Warehouse', 'Almacenista - Gestión de carga');
 ```
+
+### 5.2 Permisos por Rol (Inmutables en Código)
+
+> **Nota:** Los permisos están definidos en `RolePermissions.cs` y NO pueden modificarse en runtime.
+
+| Recurso         |     Admin     | Driver  | Warehouse | DemoUser |
+| --------------- | :-----------: | :-----: | :-------: | :------: |
+| **Usuarios**    |     CRUD      |    -    |     -     |    R     |
+| **Camiones**    |     CRUD      |    -    |     R     |    R     |
+| **Choferes**    |     CRUD      |    -    |     R     |    R     |
+| **Clientes**    |     CRUD      |    -    |     -     |    R     |
+| **Envíos**      | CRUD + Assign | ReadOwn |   Read    |    R     |
+| **Items**       |      CRU      |    -    |    RU     |    R     |
+| **Checkpoints** |      CR       |    C    |     C     |    R     |
+| **Rutas**       |     CRUD      |    R    |     R     |    R     |
+| **Ubicaciones** |     CRUD      |    R    |     R     |    R     |
+| **Documentos**  |      CR       | ReadOwn |     -     |    R     |
+| **Fleet Logs**  |      CR       |    -    |     -     |    R     |
+
+**Leyenda:** C=Create, R=Read, U=Update, D=Delete
 
 ---
 
@@ -650,22 +645,51 @@ flowchart LR
 
 ## 9. Mapeo a C# (Entity Framework)
 
+### Clase Base (BaseEntity)
+
+```csharp
+/// <summary>
+/// Clase base para todas las entidades del sistema.
+/// Incluye Soft Delete, Audit Trail, y Concurrencia Optimista.
+/// </summary>
+public abstract class BaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+
+    // v0.4.4 - Auditoria y Concurrencia
+    public Guid? CreatedByUserId { get; set; }
+    public Guid? LastModifiedByUserId { get; set; }
+    public uint RowVersion { get; set; } // Mapeado a xmin en PostgreSQL
+}
+
+public abstract class TenantEntity : BaseEntity
+{
+    public Guid TenantId { get; set; }
+}
+```
+
 ### Entidad Location
 
 ```csharp
-public class Location
+public class Location : TenantEntity
 {
-    public Guid Id { get; set; }
-    public Guid TenantId { get; set; }
-    public string Code { get; set; } = null!;  // Código corto único (MTY, GDL, MM)
+    public string Code { get; set; } = null!;  // Codigo corto unico (MTY, GDL, MM)
     public string Name { get; set; } = null!;
     public LocationType Type { get; set; }
     public string FullAddress { get; set; } = null!;
+
+    // v0.4.4 - Geolocalizacion
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+
     public bool CanReceive { get; set; }
     public bool CanDispatch { get; set; }
     public bool IsInternal { get; set; }
     public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     // Navigation Properties
     public Tenant Tenant { get; set; } = null!;
@@ -675,6 +699,7 @@ public class Location
     public ICollection<RouteStep> RouteSteps { get; set; } = new List<RouteStep>();
     public ICollection<NetworkLink> OutgoingLinks { get; set; } = new List<NetworkLink>();
     public ICollection<NetworkLink> IncomingLinks { get; set; } = new List<NetworkLink>();
+    public ICollection<WarehouseZone> Zones { get; set; } = new List<WarehouseZone>();
 }
 
 public enum LocationType { RegionalHub, CrossDock, Warehouse, Store, SupplierPlant }
@@ -766,10 +791,13 @@ public enum ShipmentPriority { Normal, Urgent, Express }
 ### Entidad ShipmentItem
 
 ```csharp
-public class ShipmentItem
+public class ShipmentItem : BaseEntity
 {
-    public Guid Id { get; set; }
     public Guid ShipmentId { get; set; }
+
+    // v0.4.4 - Enlace opcional a catalogo
+    public Guid? ProductId { get; set; }
+
     public string? Sku { get; set; }
     public string Description { get; set; } = null!;
     public PackagingType PackagingType { get; set; }
@@ -778,16 +806,16 @@ public class ShipmentItem
     public decimal WidthCm { get; set; }
     public decimal HeightCm { get; set; }
     public decimal LengthCm { get; set; }
-    public decimal VolumeM3 => (WidthCm * HeightCm * LengthCm) / 1_000_000;
+    public decimal VolumeM3 => (WidthCm * HeightCm * LengthCm) / 1_000_000m;
     public decimal DeclaredValue { get; set; }
     public bool IsFragile { get; set; }
     public bool IsHazardous { get; set; }
     public bool RequiresRefrigeration { get; set; }
     public string? StackingInstructions { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     // Navigation Properties
     public Shipment Shipment { get; set; } = null!;
+    public CatalogItem? Product { get; set; } // v0.4.4
 }
 
 public enum PackagingType { Pallet, Box, Drum, Piece }
@@ -796,6 +824,10 @@ public enum PackagingType { Pallet, Box, Drum, Piece }
 ### Entidad ShipmentCheckpoint
 
 ```csharp
+/// <summary>
+/// Evento de trazabilidad del envío.
+/// INMUTABLE: Los checkpoints no se modifican, solo se agregan nuevos.
+/// </summary>
 public class ShipmentCheckpoint
 {
     public Guid Id { get; set; }
@@ -806,14 +838,43 @@ public class ShipmentCheckpoint
     public DateTime Timestamp { get; set; }
     public Guid CreatedByUserId { get; set; }
 
+    // ========== TRAZABILIDAD DE CARGUEROS (v0.4.2) ==========
+
+    /// <summary>Chofer que manejó el paquete en este checkpoint</summary>
+    public Guid? HandledByDriverId { get; set; }
+
+    /// <summary>Camión donde se cargó el paquete</summary>
+    public Guid? LoadedOntoTruckId { get; set; }
+
+    /// <summary>Tipo de acción: Loaded, Unloaded, Transferred, Delivered, etc.</summary>
+    public string? ActionType { get; set; }
+
+    /// <summary>Nombre del custodio anterior (quien entregó)</summary>
+    public string? PreviousCustodian { get; set; }
+
+    /// <summary>Nombre del nuevo custodio (quien recibió)</summary>
+    public string? NewCustodian { get; set; }
+
     // Navigation Properties
     public Shipment Shipment { get; set; } = null!;
     public Location? Location { get; set; }
     public User CreatedBy { get; set; } = null!;
+    public Driver? HandledByDriver { get; set; }
+    public Truck? LoadedOntoTruck { get; set; }
 }
 
 public enum CheckpointStatus { Loaded, QrScanned, ArrivedHub, DepartedHub, OutForDelivery, DeliveryAttempt, Delivered, Exception }
 ```
+
+**Campos de Trazabilidad de Cargueros:**
+
+| Campo               | Tipo              | Propósito                                                |
+| ------------------- | ----------------- | -------------------------------------------------------- |
+| `HandledByDriverId` | UUID (nullable)   | Chofer que procesó el paquete en este evento             |
+| `LoadedOntoTruckId` | UUID (nullable)   | Camión donde se cargó/descargó el paquete                |
+| `ActionType`        | string (nullable) | Tipo de acción realizada (Loaded, Unloaded, Transferred) |
+| `PreviousCustodian` | string (nullable) | Nombre del custodio que entregó                          |
+| `NewCustodian`      | string (nullable) | Nombre del custodio que recibió                          |
 
 ### Entidad ShipmentDocument
 
@@ -920,6 +981,113 @@ public class Tenant
     public ICollection<Driver> Drivers { get; set; } = new List<Driver>();
     public ICollection<Location> Locations { get; set; } = new List<Location>();
     public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
+    public ICollection<CatalogItem> CatalogItems { get; set; } = new List<CatalogItem>(); // v0.4.4
+}
+```
+
+### Entidad CatalogItem (v0.4.4 - Nueva)
+
+```csharp
+/// <summary>
+/// Catalogo maestro de productos/SKUs.
+/// Normaliza datos que se repiten en ShipmentItems.
+/// </summary>
+public class CatalogItem : TenantEntity
+{
+    public string Sku { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public string? Description { get; set; }
+    public string BaseUom { get; set; } = "Pza"; // Unidad de medida: Pza, Kg, Lt, Caja
+
+    // Dimensiones Default
+    public decimal DefaultWeightKg { get; set; }
+    public decimal DefaultWidthCm { get; set; }
+    public decimal DefaultHeightCm { get; set; }
+    public decimal DefaultLengthCm { get; set; }
+
+    // Flags de manejo especial
+    public bool RequiresRefrigeration { get; set; }
+    public bool IsHazardous { get; set; }
+    public bool IsFragile { get; set; }
+    public bool IsActive { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public ICollection<ShipmentItem> ShipmentItems { get; set; } = new List<ShipmentItem>();
+    public ICollection<InventoryStock> InventoryStocks { get; set; } = new List<InventoryStock>();
+}
+```
+
+### Entidad InventoryStock (v0.4.4 - Nueva)
+
+```csharp
+/// <summary>
+/// Inventario fisico cuantificado por zona y lote.
+/// Representa el saldo actual de un producto en una ubicacion.
+/// </summary>
+public class InventoryStock : TenantEntity
+{
+    public Guid ZoneId { get; set; }
+    public Guid ProductId { get; set; }
+
+    public decimal Quantity { get; set; }
+    public decimal QuantityReserved { get; set; }
+    public decimal QuantityAvailable => Quantity - QuantityReserved;
+
+    public string? BatchNumber { get; set; }
+    public DateTime? ExpiryDate { get; set; }
+    public DateTime? LastCountDate { get; set; }
+    public decimal? UnitCost { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public WarehouseZone Zone { get; set; } = null!;
+    public CatalogItem Product { get; set; } = null!;
+}
+```
+
+### Entidad InventoryTransaction (v0.4.4 - Nueva)
+
+```csharp
+/// <summary>
+/// Bitacora de movimientos de inventario (Kardex).
+/// INMUTABLE: Las transacciones no se modifican, solo se agregan.
+/// </summary>
+public class InventoryTransaction : TenantEntity
+{
+    public Guid ProductId { get; set; }
+    public Guid? OriginZoneId { get; set; }
+    public Guid? DestinationZoneId { get; set; }
+
+    public decimal Quantity { get; set; }
+    public InventoryTransactionType TransactionType { get; set; }
+
+    public Guid PerformedByUserId { get; set; }
+    public Guid? ShipmentId { get; set; }
+    public string? BatchNumber { get; set; }
+    public string? Remarks { get; set; }
+    public DateTime Timestamp { get; set; }
+
+    // Navigation Properties
+    public Tenant Tenant { get; set; } = null!;
+    public CatalogItem Product { get; set; } = null!;
+    public WarehouseZone? OriginZone { get; set; }
+    public WarehouseZone? DestinationZone { get; set; }
+    public User PerformedBy { get; set; } = null!;
+    public Shipment? Shipment { get; set; }
+}
+
+public enum InventoryTransactionType
+{
+    Receipt,      // Entrada de mercancia externa
+    PutAway,      // Almacenamiento
+    InternalMove, // Movimiento entre zonas
+    Picking,      // Surtido para envio
+    Packing,      // Empaque
+    Dispatch,     // Salida del almacen
+    Adjustment,   // Ajuste (+/-)
+    Scrap,        // Baja por dano/caducidad
+    Return        // Devolucion
 }
 ```
 
@@ -1177,6 +1345,9 @@ public class FleetLog
 ## 14. Entidad Driver Actualizada (C#)
 
 ```csharp
+/// <summary>
+/// Chofer de la flotilla con datos legales mexicanos.
+/// </summary>
 public class Driver
 {
     public Guid Id { get; set; }
@@ -1190,6 +1361,32 @@ public class Driver
     public DriverStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    // ========== DATOS LEGALES (v0.4.2) ==========
+
+    /// <summary>RFC del chofer para facturación</summary>
+    public string? Rfc { get; set; }
+
+    /// <summary>Número de Seguro Social (IMSS)</summary>
+    public string? Nss { get; set; }
+
+    /// <summary>Clave Única de Registro de Población</summary>
+    public string? Curp { get; set; }
+
+    /// <summary>Tipo de licencia: A, B, C, D, E</summary>
+    public string? LicenseType { get; set; }
+
+    /// <summary>Fecha de vencimiento de la licencia</summary>
+    public DateTime? LicenseExpiration { get; set; }
+
+    /// <summary>Nombre del contacto de emergencia</summary>
+    public string? EmergencyContact { get; set; }
+
+    /// <summary>Teléfono del contacto de emergencia</summary>
+    public string? EmergencyPhone { get; set; }
+
+    /// <summary>Fecha de contratación</summary>
+    public DateTime? HireDate { get; set; }
+
     // Navigation Properties
     public Tenant Tenant { get; set; } = null!;
     public User User { get; set; } = null!;
@@ -1197,9 +1394,180 @@ public class Driver
     public Truck? CurrentTruck { get; set; }
     public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
     public ICollection<FleetLog> FleetHistory { get; set; } = new List<FleetLog>();
+    public ICollection<ShipmentCheckpoint> HandledCheckpoints { get; set; } = new List<ShipmentCheckpoint>();
 }
 ```
 
 ---
 
-**Siguiente Paso:** Usar este esquema para generar las migraciones de Entity Framework Core con `dotnet ef migrations add InitialCreate`.
+## 12. Metodología de Implementación (Detalles Técnicos)
+
+> **Estado:** Implementado en v0.4.0 + v0.4.1
+
+### 12.1 Tecnologías Utilizadas
+
+| Componente            | Tecnología                            | Versión     |
+| --------------------- | ------------------------------------- | ----------- |
+| ORM                   | Entity Framework Core                 | 8.0.10      |
+| Database Provider     | Npgsql.EntityFrameworkCore.PostgreSQL | 8.0.10      |
+| Base de Datos         | PostgreSQL                            | 17 (Docker) |
+| Contenedor            | postgres_db (Docker Compose)          | Up 2 months |
+| Entorno de Desarrollo | parhelion_dev                         | Created     |
+| Entorno de Producción | parhelion_prod                        | Pendiente   |
+
+### 12.2 Naming Convention
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                    NAMING CONVENTION                          │
+├───────────────────────────────────────────────────────────────┤
+│  C# Entity Classes     →  PascalCase (e.g., ShipmentItem)    │
+│  PostgreSQL Tables     →  PascalCase (preservado por EF)      │
+│  PostgreSQL Columns    →  PascalCase (e.g., "TenantId")       │
+│  Indexes               →  IX_TableName_ColumnName             │
+│  Foreign Keys          →  FK_TableName_RelatedTable_Column    │
+└───────────────────────────────────────────────────────────────┘
+```
+
+**Nota:** PostgreSQL es case-sensitive cuando usa comillas dobles. EF Core automáticamente genera nombres con comillas, por ejemplo: `"IsDelayed"`.
+
+### 12.3 Arquitectura de Capas
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Parhelion.API                           │
+│  ├── Program.cs (DI, Middleware, Endpoints)                │
+│  ├── appsettings.json (Connection Strings)                 │
+│  └── Controllers/ (futuro)                                  │
+├─────────────────────────────────────────────────────────────┤
+│                  Parhelion.Application                       │
+│  ├── Services/ (Business Logic - futuro)                   │
+│  └── DTOs/ (Data Transfer Objects - futuro)                │
+├─────────────────────────────────────────────────────────────┤
+│                    Parhelion.Domain                          │
+│  ├── Common/                                                │
+│  │   └── BaseEntity.cs, TenantEntity.cs                    │
+│  ├── Entities/ (14 entidades)                               │
+│  │   └── Tenant, User, Role, Driver, Truck, Location...    │
+│  └── Enums/ (11 enumeraciones)                              │
+│       └── ShipmentStatus, TruckType, LocationType...       │
+├─────────────────────────────────────────────────────────────┤
+│                 Parhelion.Infrastructure                     │
+│  ├── Data/                                                  │
+│  │   ├── ParhelionDbContext.cs                              │
+│  │   ├── SeedData.cs                                        │
+│  │   ├── Configurations/ (14 IEntityTypeConfiguration)     │
+│  │   └── Migrations/                                        │
+│  │       └── 20251213001913_InitialCreate.cs                │
+│  └── Services/ (Repositories - futuro)                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 12.4 Query Filters Globales
+
+El `ParhelionDbContext` implementa filtros automáticos aplicados a **todas** las consultas:
+
+```csharp
+// Soft Delete: Excluye registros eliminados
+modelBuilder.Entity<TEntity>().HasQueryFilter(e => !e.IsDeleted);
+
+// Multi-Tenancy: Filtra por tenant del usuario actual
+modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
+    !e.IsDeleted && (_tenantId == null || e.TenantId == _tenantId)
+);
+```
+
+**Beneficios:**
+
+- SQL Injection Prevention: Queries siempre parameterizadas
+- Tenant Isolation: Datos nunca se mezclan entre clientes
+- Soft Delete: Datos nunca se pierden, solo se marcan
+
+### 12.5 Audit Trail Automático
+
+```csharp
+public override int SaveChanges()
+{
+    var entries = ChangeTracker.Entries<BaseEntity>();
+    var now = DateTime.UtcNow;
+
+    foreach (var entry in entries)
+    {
+        switch (entry.State)
+        {
+            case EntityState.Added:
+                entry.Entity.CreatedAt = now;
+                entry.Entity.IsDeleted = false;
+                break;
+
+            case EntityState.Modified:
+                entry.Entity.UpdatedAt = now;
+                if (entry.Entity.IsDeleted && entry.Entity.DeletedAt == null)
+                    entry.Entity.DeletedAt = now;
+                break;
+        }
+    }
+    return base.SaveChanges();
+}
+```
+
+### 12.6 Migración Aplicada
+
+```bash
+# Generar migración
+dotnet ef migrations add InitialCreate \
+    --project src/Parhelion.Infrastructure \
+    --startup-project src/Parhelion.API \
+    --output-dir Data/Migrations
+
+# Aplicar a PostgreSQL
+dotnet ef database update \
+    --project src/Parhelion.Infrastructure \
+    --startup-project src/Parhelion.API
+```
+
+**Resultado:** 14 tablas + 1 tabla de migraciones creadas:
+
+- `Tenants`, `Users`, `Roles`
+- `Drivers`, `Trucks`, `FleetLogs`
+- `Locations`, `NetworkLinks`, `RouteBlueprints`, `RouteSteps`
+- `Shipments`, `ShipmentItems`, `ShipmentCheckpoints`, `ShipmentDocuments`
+- `__EFMigrationsHistory`
+
+### 12.7 Seed Data
+
+Roles del sistema con IDs fijos (idempotente):
+
+| Role ID                              | Name      | Description                       |
+| ------------------------------------ | --------- | --------------------------------- |
+| 11111111-1111-1111-1111-111111111111 | Admin     | Gerente de Tráfico - Acceso total |
+| 22222222-2222-2222-2222-222222222222 | Driver    | Chofer - Solo sus envíos          |
+| 33333333-3333-3333-3333-333333333333 | DemoUser  | Usuario de demostración           |
+| 44444444-4444-4444-4444-444444444444 | Warehouse | Almacenista - Carga/Descarga      |
+
+### 12.8 Connection String
+
+```json
+// appsettings.json (desarrollo)
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=parhelion_dev;Username=MetaCodeX;Password=***"
+  }
+}
+```
+
+```yaml
+# docker-compose.yml (producción)
+environment:
+  - ConnectionStrings__DefaultConnection=Host=postgres;Database=parhelion_db;Username=parhelion_user;Password=${DB_PASSWORD}
+```
+
+---
+
+**Estado de Implementación:**
+
+- Domain Layer completo (14 entidades, 11 enums)
+- Infrastructure Layer completo (DbContext, Configurations, Migrations)
+- Base de datos creada y tablas verificadas
+- ⏳ API Endpoints CRUD (próximo)
+- ⏳ Autenticación JWT (próximo)

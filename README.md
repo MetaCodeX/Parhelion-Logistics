@@ -3,15 +3,18 @@
 ![Parhelion-Logistics Banner](./bannerlogo.png)
 
 ![.NET 8](https://img.shields.io/badge/.NET%208-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![Python](https://img.shields.io/badge/Python%203.12-3776AB?style=for-the-badge&logo=python&logoColor=FFD43B)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![Angular](https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona inventarios, flotas tipificadas, redes Hub & Spoke y documentación legal (Carta Porte) en un entorno Multi-tenant.
+Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona inventarios, flotas tipificadas, redes Hub & Spoke y documentación legal (Carta Porte) en un entorno Multi-tenant con **agentes de IA automatizados** y **análisis predictivo con Python**.
 
-> **Estado del Proyecto:** Diseño Finalizado (v2.3) - Listo para Implementación
+> **Estado:** Development Preview v0.6.0-alpha - Python Microservice Integration
 
 ---
 
@@ -19,7 +22,7 @@ Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona in
 
 **Parhelion-Logistics** es una plataforma SaaS multi-tenant de nivel Enterprise que unifica las capacidades de un WMS (Warehouse Management System) y un TMS (Transportation Management System). Diseñada para empresas de transporte B2B que requieren gestión integral: inventarios estáticos en almacén, flotas tipificadas (refrigerado, HAZMAT, blindado), redes de distribución Hub & Spoke, trazabilidad por checkpoints y documentación legal mexicana (Carta Porte, POD).
 
-**Objetivo Técnico:** Implementación de **Clean Architecture** y **Domain-Driven Design (DDD)** en un entorno de producción utilizando .NET 8, Angular, React, Docker y PostgreSQL.
+**Objetivo Técnico:** Implementación de **Clean Architecture** y **Domain-Driven Design (DDD)** en un entorno de producción utilizando .NET 8, **Python (FastAPI)**, Angular, React, Docker, PostgreSQL y **n8n** para automatización inteligente.
 
 ---
 
@@ -27,57 +30,146 @@ Plataforma Unificada de Logística B2B (WMS + TMS) nivel Enterprise. Gestiona in
 
 ### Core
 
-- [x] Documentación de requerimientos y esquema de base de datos
-- [ ] **Arquitectura Base:** Configuración de Clean Architecture y estructura de proyecto
-- [ ] **Multi-tenancy:** Aislamiento de datos por cliente/empresa
+- [x] **Documentación Completa:** Requerimientos, esquema de BD, guías de API
+- [x] **Clean Architecture:** Domain, Application, Infrastructure, API layers
+- [x] **Multi-tenancy:** Query Filters globales + herencia automática de TenantId
+- [x] **Domain Layer:** 25 entidades + 17 enumeraciones
+- [x] **Infrastructure Layer:** EF Core + PostgreSQL + Migrations
+- [x] **API REST:** 22 endpoints CRUD para todas las entidades
+- [x] **Autorización Jerárquica:** SuperAdmin → Admin → Driver/Warehouse
+- [x] **Repository Pattern:** GenericRepository + UnitOfWork + Soft Delete
+- [x] **xUnit Tests:** 122 tests (foundation + services + business rules)
+- [x] **Services Layer:** 22 servicios (Core, Shipment, Fleet, Network, Warehouse)
+
+### Python Analytics Service (v0.6.0)
+
+- [x] **Microservicio Python 3.12:** FastAPI + SQLAlchemy 2.0 + asyncpg
+- [x] **10 Módulos de Análisis:**
+  - Route Optimizer (NetworkX)
+  - Truck Recommender (ML)
+  - Demand Forecaster (Prophet)
+  - Anomaly Detector (Isolation Forest)
+  - Loading Optimizer (3D Bin Packing)
+  - Network Analyzer (Graph Analytics)
+  - Shipment Clusterer (K-Means)
+  - ETA Predictor (Gradient Boosting)
+  - Driver Performance (KPI Analytics)
+  - Dashboard Engine (Real-time Metrics)
+- [x] **Comunicación Inter-Servicios:** Polly resilience + internal JWT
+- [x] **Stress Tests:** 5 tests de rendimiento validados
 
 ### Gestión de Flotilla
 
-- [ ] **Camiones Tipificados:** DryBox, Refrigerado, HAZMAT, Plataforma, Blindado
-- [ ] **Choferes:** Asignación fija (default_truck) y dinámica (current_truck)
-- [ ] **Bitácora de Flotilla:** Historial de cambios de vehículo (FleetLog)
+- [x] **Camiones Tipificados:** DryBox, Refrigerado, HAZMAT, Plataforma, Blindado
+- [x] **Choferes:** Asignación fija (default_truck) y dinámica (current_truck)
+- [x] **Bitácora de Flotilla:** Historial de cambios de vehículo (FleetLog automático)
+- [x] **Telemetría GPS:** Campos de latitud/longitud en Trucks
+- [x] **Búsqueda Geoespacial:** Endpoint nearby con algoritmo Haversine
 
-### Red Logística (Hub & Spoke)
+### Automatización e Inteligencia (n8n)
 
-- [ ] **Nodos de Red:** RegionalHub, CrossDock, Warehouse, Store, SupplierPlant
-- [ ] **Códigos Aeroportuarios:** Identificadores únicos por ubicación (MTY, GDL, MM)
-- [ ] **Enlaces de Red:** Conexiones FirstMile, LineHaul, LastMile
-- [ ] **Rutas Predefinidas:** RouteBlueprint con paradas y tiempos de tránsito
+- [x] **Webhooks:** 5 tipos de eventos para integración externa
+- [x] **Notificaciones:** Push notifications persistidas para apps móviles
+- [x] **ServiceApiKey:** Autenticación multi-tenant para agentes IA
+- [x] **Agente Crisis Management:** Búsqueda automática de chofer cercano
+
+### Red Logística (Hub and Spoke)
+
+- [x] **Nodos de Red:** RegionalHub, CrossDock, Warehouse, Store, SupplierPlant
+- [x] **Códigos Únicos:** Identificadores estilo aeropuerto (MTY, GDL, CDMX)
+- [x] **Enlaces de Red:** Conexiones FirstMile, LineHaul, LastMile
+- [x] **Rutas Predefinidas:** RouteBlueprint con paradas y tiempos de tránsito
 
 ### Envíos y Trazabilidad
 
-- [ ] **Manifiesto de Carga:** Items con peso volumétrico y valor declarado
-- [ ] **Restricciones de Compatibilidad:** Cadena de frío, HAZMAT, Alto valor
-- [ ] **Checkpoints:** Bitácora de eventos (Loaded, QrScanned, ArrivedHub, Delivered)
+- [x] **Manifiesto de Carga:** Items con peso volumétrico y valor declarado
+- [x] **Restricciones de Compatibilidad:** Cadena de frío, HAZMAT, Alto valor
+- [x] **Checkpoints:** Bitácora de eventos con timeline visual
 - [ ] **QR Handshake:** Transferencia de custodia digital mediante escaneo
 
 ### Documentación B2B
 
-- [ ] **Orden de Servicio:** Petición inicial del cliente
-- [ ] **Carta Porte (Waybill):** Documento legal SAT para transporte
-- [ ] **Manifiesto de Carga:** Checklist de estiba para almacenista
-- [ ] **Hoja de Ruta:** Itinerario con ventanas de entrega
-- [ ] **POD (Proof of Delivery):** Firma digital del receptor
+- [x] **5 Tipos de Documentos PDF:** Orden de Servicio, Carta Porte, Manifiesto, Hoja de Ruta, POD
+- [x] **Generación On-Demand:** Sin almacenamiento de archivos
+- [x] **Firma Digital:** Captura de firma en POD
 
 ### Operación
 
-- [ ] **Seguridad:** Autenticación JWT con roles (Admin/Chofer/Almacenista)
+- [x] **Seguridad JWT:** Autenticación con tokens seguros
 - [ ] **Dashboard:** KPIs operativos en tiempo real
-- [ ] **Modo Demo:** Acceso para reclutadores sin registro previo
+- [ ] **Modo Demo:** Acceso para reclutadores sin registro
+
+---
+
+## Demo (Development Preview)
+
+| Aplicación       | URL Pública                                                    | Descripción                                 |
+| :--------------- | :------------------------------------------------------------- | :------------------------------------------ |
+| **Landing Page** | [parhelion.macrostasis.lat](https://parhelion.macrostasis.lat) | Página principal con changelog y navegación |
+| **Panel Admin**  | [phadmin.macrostasis.lat](https://phadmin.macrostasis.lat)     | Gestión administrativa (Angular)            |
+| **Operaciones**  | [phops.macrostasis.lat](https://phops.macrostasis.lat)         | App para almacenistas (React PWA)           |
+| **Driver App**   | [phdriver.macrostasis.lat](https://phdriver.macrostasis.lat)   | App para choferes (React PWA)               |
+
+> Infraestructura: Cloudflare Tunnel (Zero Trust) + Docker Compose + Digital Ocean
+
+---
+
+## Python Analytics Service (v0.6.0)
+
+Microservicio dedicado para analisis avanzado, predicciones ML y reportes. Implementado con Clean Architecture en Python.
+
+Para documentacion completa del servicio, ver [python-analytics.md](./python-analytics.md).
+
+| Componente | Tecnologia               | Estado  |
+| ---------- | ------------------------ | ------- |
+| Framework  | FastAPI 0.115+           | Activo  |
+| Runtime    | Python 3.12              | Activo  |
+| ORM        | SQLAlchemy 2.0 + asyncpg | Activo  |
+| Testing    | pytest + pytest-asyncio  | 4 tests |
+| Container  | parhelion-python:8000    | Healthy |
 
 ---
 
 ## Stack Tecnológico
 
-| Capa                     | Tecnología                            | Usuario        |
-| :----------------------- | :------------------------------------ | :------------- |
-| **Backend**              | C# / .NET 8 Web API                   | -              |
-| **Base de Datos**        | PostgreSQL 16                         | -              |
-| **ORM**                  | Entity Framework Core (Code First)    | -              |
-| **Frontend (Admin)**     | Angular 18+ (Material Design)         | Admin          |
-| **Frontend (Operación)** | React (PWA)                           | Chofer/Almacén |
-| **Infraestructura**      | Docker Compose, Nginx (Reverse Proxy) | -              |
-| **Hosting**              | Digital Ocean Droplet (Linux)         | -              |
+| Capa                     | Tecnología                            | Usuario     |
+| :----------------------- | :------------------------------------ | :---------- |
+| **Backend**              | C# / .NET 8 Web API                   | -           |
+| **Analytics Service**    | Python 3.12 / FastAPI                 | -           |
+| **Base de Datos**        | PostgreSQL 17                         | -           |
+| **ORM (.NET)**           | Entity Framework Core (Code First)    | -           |
+| **ORM (Python)**         | SQLAlchemy 2.0 + asyncpg              | -           |
+| **Automatización**       | n8n (Workflow Automation)             | Agentes IA  |
+| **Frontend (Admin)**     | Angular 18+ (Material Design)         | Admin       |
+| **Frontend (Operacion)** | React + Vite + Tailwind CSS (PWA)     | Almacenista |
+| **Frontend (Campo)**     | React + Vite + Tailwind CSS (PWA)     | Chofer      |
+| **Infraestructura**      | Docker Compose, Nginx (Reverse Proxy) | -           |
+| **Hosting**              | Digital Ocean Droplet (Linux)         | -           |
+
+---
+
+## Design System
+
+El proyecto utiliza un estilo visual **Neo-Brutalism** con la paleta de colores "Industrial Solar":
+
+| Token   | Color     | Uso                             |
+| :------ | :-------- | :------------------------------ |
+| `oxide` | `#C85A17` | Acciones, acentos, hover states |
+| `sand`  | `#E8E6E1` | Fondos secundarios              |
+| `black` | `#000000` | Bordes, texto, sombras          |
+| `white` | `#FAFAFA` | Fondos principales              |
+
+### Tipografía
+
+- **Logo:** New Rocker (display font)
+- **Títulos:** Merriweather (serif)
+- **Body:** Inter (sans-serif)
+
+### Componentes
+
+Los frontends incluyen componentes pre-estilizados: `btn`, `btn-primary`, `btn-oxide`, `card`, `input` con sombras brutalist y transiciones sólidas (sin gradientes).
+
+> UI inspirada en [neobrutalism-components](https://github.com/ekmas/neobrutalism-components)
 
 ---
 
@@ -123,26 +215,105 @@ graph TD
     CC -->|LastMile| G
 ```
 
+### Integración n8n (Automatización)
+
+```mermaid
+flowchart LR
+    subgraph Backend["Parhelion API"]
+        API[Controllers]
+        WP[WebhookPublisher]
+        NC[NotificationsController]
+    end
+
+    subgraph n8n["n8n Workflows"]
+        WH{{Webhook Trigger}}
+        AI[/"AI Agent<br/>(Claude/GPT)"/]
+        HTTP[HTTP Request]
+    end
+
+    subgraph Mobile["Apps Móviles"]
+        APP[Driver App]
+    end
+
+    API -->|"shipment.exception"| WP
+    WP -->|"POST /webhook"| WH
+    WH --> AI
+    AI --> HTTP
+    HTTP -->|"POST /api/notifications"| NC
+    HTTP -->|"GET /api/drivers/nearby"| API
+    NC -.->|"Push Notification"| APP
+```
+
+**Flujo de Crisis Management:**
+
+1. Backend detecta `ShipmentStatus.Exception` → publica webhook
+2. n8n recibe evento → activa Agente IA
+3. Agente consulta `/api/drivers/nearby` con coordenadas del incidente
+4. Agente crea notificación para chofer de rescate
+5. App móvil recibe push notification
+
+---
+
+## Base de Datos
+
+### Tecnologías
+
+| Componente | Tecnología                            | Versión     |
+| ---------- | ------------------------------------- | ----------- |
+| ORM        | Entity Framework Core                 | 8.0.10      |
+| Provider   | Npgsql.EntityFrameworkCore.PostgreSQL | 8.0.10      |
+| Database   | PostgreSQL                            | 17 (Docker) |
+| Migrations | Code First                            |             |
+
+### Características de Seguridad
+
+- **Anti SQL Injection:** Queries parameterizadas automáticas de EF Core
+- **Multi-Tenancy:** Query Filters globales por TenantId
+- **Soft Delete:** Todas las entidades soportan borrado lógico
+- **Audit Trail:** CreatedAt, UpdatedAt, DeletedAt automáticos
+- **Password Hashing:** BCrypt (usuarios) + Argon2id (admins)
+
+### Naming Convention
+
+```
+PascalCase en C# → PascalCase en PostgreSQL
+Ejemplo: ShipmentItem.TenantId → "ShipmentItems"."TenantId"
+```
+
+Para más detalles técnicos, ver [Sección 12 de database-schema.md](./database-schema.md#12-metodología-de-implementación-detalles-técnicos)
+
 ---
 
 ## Estructura del Proyecto
 
 ```
-src/
+backend/src/
 ├── Parhelion.Domain/         # Núcleo: Entidades y Excepciones (Sin dependencias)
 ├── Parhelion.Application/    # Reglas: DTOs, Interfaces, Validaciones
 ├── Parhelion.Infrastructure/ # Persistencia: DbContext, Repositorios, Migraciones
 └── Parhelion.API/            # Entrada: Controllers, JWT Config, DI
+
+service-python/               # Microservicio Python (Analytics & Predictions)
+├── src/parhelion_py/         # Clean Architecture: domain, application, infrastructure, api
+│   ├── domain/               # Entidades, Value Objects, Interfaces
+│   ├── application/          # DTOs, Services, Use Cases
+│   ├── infrastructure/       # Database, External Clients
+│   └── api/                  # FastAPI Routers, Middleware
+└── tests/                    # pytest unit/integration tests
 ```
 
 ---
 
-## Documentación
+## Documentacion
 
-| Documento                                        | Descripción                                   |
-| :----------------------------------------------- | :-------------------------------------------- |
-| [Requerimientos (MVP)](./requirments.md)         | Especificación funcional completa del sistema |
-| [Esquema de Base de Datos](./database-schema.md) | Diagrama ER, entidades y reglas de negocio    |
+| Documento                                        | Descripcion                                     |
+| :----------------------------------------------- | :---------------------------------------------- |
+| [Requerimientos (MVP)](./requirments.md)         | Especificacion funcional completa del sistema   |
+| [Esquema de Base de Datos](./database-schema.md) | Diagrama ER, entidades y reglas de negocio      |
+| [Arquitectura de API](./api-architecture.md)     | Estructura de capas y endpoints (.NET + Python) |
+| [Python Analytics](./python-analytics.md)        | Roadmap, 10 objetivos, estructura del servicio  |
+| [Guia de Webhooks](./service-webhooks.md)        | Integracion n8n, eventos y notificaciones       |
+| [CHANGELOG](./CHANGELOG.md)                      | Historial detallado de todas las versiones      |
 
 ---
 
@@ -168,6 +339,102 @@ src/
 | :-------------- | :-------------------- |
 | **API Backend** | `api.macrostasis.lat` |
 | **Frontend**    | `macrostasis.lat`     |
+
+---
+
+## Roadmap
+
+### Completado
+
+| Version | Fecha   | Descripcion                                                 |
+| ------- | ------- | ----------------------------------------------------------- |
+| v0.1.0  | 2025-12 | Estructura inicial, documentación de requerimientos         |
+| v0.2.0  | 2025-12 | Domain Layer: Entidades base y enumeraciones                |
+| v0.3.0  | 2025-12 | Infrastructure Layer: EF Core, PostgreSQL, Migrations       |
+| v0.4.0  | 2025-12 | API Layer: Controllers base, JWT Authentication             |
+| v0.5.0  | 2025-12 | Services Layer: Repository Pattern, UnitOfWork              |
+| v0.5.1  | 2025-12 | Foundation Tests: DTOs, Repository, UnitOfWork              |
+| v0.5.2  | 2025-12 | Services Implementation: 16 interfaces, 15 implementaciones |
+| v0.5.3  | 2025-12 | Integration Tests: 72 tests para Services                   |
+| v0.5.4  | 2025-12 | Swagger/OpenAPI, Business Logic Workflow                    |
+| v0.5.5  | 2025-12 | WMS/TMS Services, Business Rules, 122 tests                 |
+| v0.5.6  | 2025-12 | n8n Integration, Webhooks, Notifications, ServiceApiKey     |
+| v0.5.7  | 2025-12 | Dynamic PDF Generation, Checkpoint Timeline, POD Signatures |
+
+### En Progreso (v0.6.x - Python Integration)
+
+| Version          | Nombre Clave  | Descripción                                        |
+| ---------------- | ------------- | -------------------------------------------------- |
+| **v0.6.0-alpha** | `foundation`  | Estructura base Python, Docker, health checks      |
+| v0.6.0-beta      | `integration` | Comunicación API ↔ Python, autenticación interna   |
+| v0.6.0-rc.1      | `validation`  | Tests de integración, documentación                |
+| **v0.6.0**       | `Python Core` | Release estable con microservicio Python integrado |
+
+### Proximas Versiones (v0.7.0-v1.0.0)
+
+#### v0.7.0-v0.7.4: Operaciones de Campo (QR + Rutas)
+
+| Version | Feature          | Descripción                                        |
+| ------- | ---------------- | -------------------------------------------------- |
+| v0.7.0  | QR Generation    | Generación de códigos QR por envío (Angular Admin) |
+| v0.7.1  | QR Scanning      | Lectura QR en React PWA (Driver + Operaciones)     |
+| v0.7.2  | Custody Transfer | Transferencia de custodia digital con checkpoint   |
+| v0.7.3  | Route Assignment | Asignación de rutas predefinidas a shipments       |
+| v0.7.4  | Route Progress   | Avance automático por pasos de ruta                |
+
+#### v0.8.0-v0.8.5: Frontend Admin Panel (Angular)
+
+| Version | Feature           | Descripción                                   |
+| ------- | ----------------- | --------------------------------------------- |
+| v0.8.0  | Admin Shell       | Layout, navegación, auth guards, interceptors |
+| v0.8.1  | Core CRUD         | Gestión de Tenants, Users, Roles, Employees   |
+| v0.8.2  | Fleet CRUD        | Gestión de Trucks, Drivers, FleetLogs         |
+| v0.8.3  | Shipment CRUD     | Crear envíos, asignar chofer/camión, items    |
+| v0.8.4  | Shipment Tracking | Timeline de checkpoints, status updates       |
+| v0.8.5  | Network CRUD      | Gestión de Locations, Routes, NetworkLinks    |
+
+#### v0.9.0-v0.9.6: Frontend PWAs + Dashboard
+
+| Version | Feature              | Descripción                                    |
+| ------- | -------------------- | ---------------------------------------------- |
+| v0.9.0  | Operaciones PWA      | App tablet: login, lista de envíos, carga      |
+| v0.9.1  | Operaciones QR       | Escaneo QR, validación peso/volumen            |
+| v0.9.2  | Driver PWA           | App móvil: login, hoja de ruta, navegación     |
+| v0.9.3  | Driver Confirmations | Confirmar llegadas, entregas, firma POD        |
+| v0.9.4  | Dashboard Base       | KPIs principales: envíos por status, ocupación |
+| v0.9.5  | Dashboard Analytics  | Métricas con Python: tendencias, predicciones  |
+| v0.9.6  | AI Predictions       | Predicción ETA, alertas de retraso             |
+| v0.9.7  | Dispatch Cutoff      | Sistema de cortes automáticos por Hub          |
+
+#### v0.9.7: Sistema de Cortes (Dispatch Cutoff)
+
+Funcionalidad inspirada en MercadoLibre para automatizar despachos:
+
+| Feature                    | Descripción                                            |
+| -------------------------- | ------------------------------------------------------ |
+| **Cutoff Config**          | Configuración de tiempos de corte por Hub/Location     |
+| **Batch Shipments**        | Agrupación automática de envíos aprobados              |
+| **Truck Assignment**       | Asignación inteligente de camiones disponibles         |
+| **Warehouse Notification** | Notificación a PDAs de almacenistas                    |
+| **Location Validation**    | Verificación de que operador y camión estén co-located |
+
+> **Flujo:** Shipments se acumulan → Admin aprueba antes del corte → Python agrupa y asigna → Warehouse recibe notificación → Despacho
+
+#### v1.0.0 - MVP Release (Q1 2026)
+
+| Criterio         | Requerimiento                            |
+| ---------------- | ---------------------------------------- |
+| Backend API      | 100% endpoints funcionales con tests     |
+| Python Analytics | Análisis y predicciones operativas       |
+| Admin Panel      | CRUD completo para todas las entidades   |
+| Operaciones PWA  | Funcional para almacenistas              |
+| Driver App PWA   | Funcional para choferes con firma POD    |
+| Dashboard        | KPIs operativos en tiempo real           |
+| Documentación    | README, API docs, Swagger actualizados   |
+| Deployment       | Docker + Cloudflare Tunnel en producción |
+
+> **Nota:** Cada versión x.y.z puede completarse en días, no semanas.
+> Las funcionalidades se entregan incrementalmente siguiendo Agile.
 
 ---
 
